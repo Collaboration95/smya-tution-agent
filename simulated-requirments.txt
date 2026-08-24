@@ -1,0 +1,172 @@
+SMYA S0-01 - SIMULATED STAKEHOLDER REQUIREMENTS
+================================================
+
+Discovery decision
+------------------
+
+- Tutor-capacity hypothesis: unvalidated but plausible; retain for the
+  prototype.
+- Economic buyer and sponsor: small tuition-centre owner/administrator.
+- Primary operator: working tutor.
+- Downstream users: students and parents/guardians.
+- Selected scope: one primary Mathematics class, fractions, using three to
+  five sub-skills.
+- Highest-value workflow:
+
+  completed student work -> deterministic marking -> evidence-backed weakness
+  proposal -> targeted practice draft -> tutor approval -> assignment
+
+- Secondary workflow: parent progress drafting after trustworthy mastery
+  history exists.
+- Claims that must not be made: validated SME demand, willingness to pay, real
+  tutor time savings, or proven return on investment.
+
+What the centre owner/administrator wants
+----------------------------------------
+
+- Help each tutor support more students without immediately adding headcount.
+- Improve consistency between tutors and classes.
+- Give parents credible evidence of progress and next steps.
+- Retain control over curriculum, staff permissions, student access, and
+  external communications.
+- Measure net time saved after tutor review and editing, rather than measuring
+  only AI generation speed.
+- Protect children's information and prevent accidental or unapproved
+  communication.
+- Introduce a lightweight workflow rather than replace the centre's operation
+  with a large learning-management system.
+- Keep costs, latency, and failure behaviour predictable.
+- Continue the normal workflow when the model provider is unavailable.
+
+The owner/administrator is likely to reject:
+
+- Large setup or data-migration requirements.
+- Per-student AI costs without measurable operational benefit.
+- Autonomous parent communication or assessment assignment.
+- A process that creates as much tutor-review work as it removes.
+- Generic AI output without curriculum grounding, evidence, or auditability.
+
+What the working tutor wants
+----------------------------
+
+- See the exact questions, answers, and mistakes behind a proposed diagnosis.
+- Avoid permanently labelling a student from one poor attempt.
+- Receive a short, usable follow-up activity rather than generic AI prose.
+- Accept, edit, reject, or request more evidence quickly.
+- Automate routine objective marking while returning ambiguous answers for
+  human review.
+- Review students in batches or at class level rather than processing a large
+  alert queue one student at a time.
+- Retain corrections so the same generated-content problem is not repeatedly
+  fixed.
+- Avoid duplicate data entry and unnecessary workflow switching.
+- Remain accountable for teaching, assignment, and communication decisions.
+
+The tutor's key objection is approval burden. If reviewing generated material
+takes as long as preparing it manually, the product has failed.
+
+Plausible current workflow
+--------------------------
+
+1. The tutor gathers homework, quiz results, and personal observations from
+   several places.
+2. The tutor manually inspects errors and infers which topics or sub-skills
+   need attention.
+3. Most students receive a common worksheet; the tutor manually differentiates
+   material when time permits.
+4. The tutor marks work, explains mistakes, and decides what to teach next.
+5. Progress is remembered or recorded informally.
+6. Parent updates are assembled later from incomplete notes.
+
+Likely pain points are fragmented evidence, repetitive worksheet preparation,
+inconsistent personalisation, delayed feedback, and parent-report catch-up.
+
+Illustrative timing assumptions
+-------------------------------
+
+These ranges are working assumptions for a future benchmark:
+
+- Review and diagnose: 5-15 minutes per student.
+- Adapt targeted practice: 10-20 minutes per student.
+- Mark objective practice: 2-5 minutes per student.
+- Prepare a parent update: 5-10 minutes per student.
+- Target AI-draft review time: less than 2-3 minutes per student.
+
+The relevant measurement is:
+
+  net tutor time saved = manual baseline - assisted tutor review/edit time
+
+Model processing time alone is not a valid productivity measure.
+
+Selected first workflow
+-----------------------
+
+1. A student completes approved objective practice or a diagnostic.
+2. Answers are marked deterministically and stored as immutable evidence.
+3. The system derives a versioned mastery state using a deterministic policy.
+4. A bounded diagnostic worker creates a weakness proposal that cites evidence,
+   confidence, and policy version.
+5. The tutor accepts, edits, rejects, or requests more evidence.
+6. The system selects or drafts a short, differentiated practice set from
+   approved sources.
+7. The tutor approves the assessment draft.
+8. Assignment occurs as a separate authorised action.
+9. New answers become evidence for the next diagnostic cycle.
+
+Must-have requirements
+----------------------
+
+- One class, one subject, one level, and three to five fractions sub-skills.
+- A small tutor-approved question bank and curriculum corpus.
+- Question-level answers and immutable evidence records.
+- Deterministic grading for objective questions.
+- Versioned mastery state derived by a deterministic policy.
+- Weakness proposals containing evidence references, confidence, and policy
+  version.
+- Explicit insufficient-evidence and conflicting-evidence outcomes instead of
+  invented conclusions.
+- Different practice for students with different effective mastery states.
+- Tutor actions to accept, edit, reject, or request more evidence.
+- Approval and assignment as separate operations. Saving a draft must never
+  create an assignment.
+- Batch-friendly review and limited, actionable alerts.
+- Server-side centre, role, tutor, student, and guardian access checks.
+- An audit history for generated material, corrections, approvals,
+  assignments, and delivery outcomes.
+- A model-unavailable fallback using deterministic or pre-authored content.
+- Synthetic data only for the public prototype and demonstration.
+- A responsive student experience that works at phone-sized browser widths.
+
+Human approval points
+---------------------
+
+1. An administrator or authorised tutor approves curriculum sources and
+   question templates.
+2. A tutor reviews uncertain, low-evidence, or conflicting diagnostic
+   proposals.
+3. A tutor approves an assessment draft before it can be assigned.
+4. A tutor resolves generated-content errors and unsupported cases.
+5. A tutor approves parent reports, and the system verifies guardian linkage
+   and consent before delivery.
+
+Nice-to-have and deferred requirements
+--------------------------------------
+
+- Multiple subjects, levels, and age groups.
+- Attendance, billing, enrolment, and full LMS functionality.
+- Autonomous grading of unrestricted free-text responses.
+- Autonomous parent messaging.
+- Voice, video, and advanced multimodal tutoring.
+- Telegram integration when the responsive browser flow is sufficient.
+- Broad centre analytics, model fine-tuning, production autoscaling, and
+  elaborate deployment automation.
+
+S0-01 decision record
+---------------------
+
+The tutor-capacity hypothesis is retained as an unvalidated product assumption,
+not customer evidence. For the prototype, the team selects a one-class primary
+Mathematics fractions workflow focused on evidence-backed diagnosis and
+tutor-approved differentiated practice. Tutor approval is mandatory before
+assessment assignment, and uncertain evidence is escalated. Parent reporting
+remains a downstream workflow built on approved, versioned mastery history.
