@@ -1,0 +1,387 @@
+{
+  "$schema": "../schema/s0_fixture.schema.json",
+  "seed_id": "synthetic_centre_v1",
+  "contract_id": "fractions_contract_v1",
+  "mastery_policy_id": "mastery_policy_v1",
+  "synthetic_notice": "Every record is fictional test data. Do not replace it with real centre, tutor, student, guardian, or assessment data.",
+  "entities": {
+    "centres": [
+      {
+        "id": "CTR-SYNTH-NORTHSTAR",
+        "display_name": "Synthetic Northstar Tuition Centre",
+        "is_synthetic": true
+      }
+    ],
+    "tutors": [
+      {
+        "id": "TUT-SYNTH-ALPHA",
+        "centre_id": "CTR-SYNTH-NORTHSTAR",
+        "display_name": "Synthetic Tutor Alpha",
+        "role": "tutor",
+        "is_synthetic": true
+      },
+      {
+        "id": "TUT-SYNTH-BRAVO",
+        "centre_id": "CTR-SYNTH-NORTHSTAR",
+        "display_name": "Synthetic Tutor Bravo",
+        "role": "tutor",
+        "is_synthetic": true
+      }
+    ],
+    "students": [
+      {
+        "id": "STU-SYNTH-A",
+        "centre_id": "CTR-SYNTH-NORTHSTAR",
+        "display_name": "Synthetic Student A",
+        "level_id": "PRIMARY_5",
+        "is_synthetic": true
+      },
+      {
+        "id": "STU-SYNTH-B",
+        "centre_id": "CTR-SYNTH-NORTHSTAR",
+        "display_name": "Synthetic Student B",
+        "level_id": "PRIMARY_5",
+        "is_synthetic": true
+      }
+    ],
+    "classes": [
+      {
+        "id": "CLS-SYNTH-P5-FRACTIONS",
+        "centre_id": "CTR-SYNTH-NORTHSTAR",
+        "tutor_id": "TUT-SYNTH-ALPHA",
+        "subject_id": "MATHEMATICS",
+        "level_id": "PRIMARY_5",
+        "topic_id": "FRACTIONS"
+      }
+    ],
+    "enrolments": [
+      {
+        "id": "ENR-SYNTH-A-P5F",
+        "class_id": "CLS-SYNTH-P5-FRACTIONS",
+        "student_id": "STU-SYNTH-A",
+        "status": "active"
+      },
+      {
+        "id": "ENR-SYNTH-B-P5F",
+        "class_id": "CLS-SYNTH-P5-FRACTIONS",
+        "student_id": "STU-SYNTH-B",
+        "status": "active"
+      }
+    ],
+    "guardian_links": [
+      {
+        "id": "GRD-SYNTH-A-VERIFIED",
+        "student_id": "STU-SYNTH-A",
+        "display_name": "Synthetic Guardian A",
+        "verification_status": "verified",
+        "reporting_consent": true,
+        "is_synthetic": true
+      },
+      {
+        "id": "GRD-SYNTH-B-PENDING",
+        "student_id": "STU-SYNTH-B",
+        "display_name": "Synthetic Guardian B",
+        "verification_status": "pending",
+        "reporting_consent": false,
+        "is_synthetic": true
+      }
+    ],
+    "curriculum_chunks": [
+      {
+        "id": "CHK-SYNTH-EQUIV-001",
+        "source_id": "SRC-SYNTH-FRACTIONS-V1",
+        "subskill_id": "FRC-EQUIVALENCE",
+        "approval_status": "approved",
+        "text": "Equivalent fractions represent the same quantity; simplify by dividing numerator and denominator by the same factor."
+      },
+      {
+        "id": "CHK-SYNTH-COMPARE-001",
+        "source_id": "SRC-SYNTH-FRACTIONS-V1",
+        "subskill_id": "FRC-COMPARE-ORDER",
+        "approval_status": "approved",
+        "text": "Compare fractions by expressing them with a common denominator or by using benchmark fractions."
+      },
+      {
+        "id": "CHK-SYNTH-ADD-001",
+        "source_id": "SRC-SYNTH-FRACTIONS-V1",
+        "subskill_id": "FRC-ADD-SUB-UNLIKE",
+        "approval_status": "approved",
+        "text": "For unlike denominators, find an equivalent form with a common denominator before adding or subtracting."
+      },
+      {
+        "id": "CHK-SYNTH-MULT-001",
+        "source_id": "SRC-SYNTH-FRACTIONS-V1",
+        "subskill_id": "FRC-MULTIPLY-WHOLE",
+        "approval_status": "approved",
+        "text": "Multiply a fraction by a whole number by multiplying the numerator and keeping the denominator."
+      }
+    ]
+  },
+  "approved_question_ids": [
+    "Q-FRC-EQUIV-001",
+    "Q-FRC-EQUIV-002",
+    "Q-FRC-EQUIV-003",
+    "Q-FRC-COMPARE-001",
+    "Q-FRC-COMPARE-002",
+    "Q-FRC-COMPARE-003",
+    "Q-FRC-ADD-001",
+    "Q-FRC-ADD-002",
+    "Q-FRC-ADD-003",
+    "Q-FRC-ADD-004",
+    "Q-FRC-ADD-005",
+    "Q-FRC-ADD-006",
+    "Q-FRC-MULT-001",
+    "Q-FRC-MULT-002",
+    "Q-FRC-MULT-003"
+  ],
+  "attempts": [
+    {
+      "id": "ATT-SYNTH-A-ADD-001",
+      "student_id": "STU-SYNTH-A",
+      "question_id": "Q-FRC-ADD-001",
+      "submitted_answer": "2/6",
+      "grading_status": "graded"
+    },
+    {
+      "id": "ATT-SYNTH-A-ADD-002",
+      "student_id": "STU-SYNTH-A",
+      "question_id": "Q-FRC-ADD-002",
+      "submitted_answer": "3/9",
+      "grading_status": "graded"
+    },
+    {
+      "id": "ATT-SYNTH-A-ADD-003",
+      "student_id": "STU-SYNTH-A",
+      "question_id": "Q-FRC-ADD-003",
+      "submitted_answer": "4/12",
+      "grading_status": "graded"
+    },
+    {
+      "id": "ATT-SYNTH-A-ADD-004",
+      "student_id": "STU-SYNTH-A",
+      "question_id": "Q-FRC-ADD-004",
+      "submitted_answer": "5/8",
+      "grading_status": "graded"
+    },
+    {
+      "id": "ATT-SYNTH-B-ADD-001",
+      "student_id": "STU-SYNTH-B",
+      "question_id": "Q-FRC-ADD-001",
+      "submitted_answer": "3/4",
+      "grading_status": "graded"
+    },
+    {
+      "id": "ATT-SYNTH-B-ADD-002",
+      "student_id": "STU-SYNTH-B",
+      "question_id": "Q-FRC-ADD-002",
+      "submitted_answer": "1/2",
+      "grading_status": "graded"
+    },
+    {
+      "id": "ATT-SYNTH-B-ADD-003",
+      "student_id": "STU-SYNTH-B",
+      "question_id": "Q-FRC-ADD-003",
+      "submitted_answer": "7/8",
+      "grading_status": "graded"
+    },
+    {
+      "id": "ATT-SYNTH-B-ADD-004",
+      "student_id": "STU-SYNTH-B",
+      "question_id": "Q-FRC-ADD-004",
+      "submitted_answer": "5/8",
+      "grading_status": "graded"
+    },
+    {
+      "id": "ATT-SYNTH-A-MULT-001",
+      "student_id": "STU-SYNTH-A",
+      "question_id": "Q-FRC-MULT-001",
+      "submitted_answer": "2/3",
+      "grading_status": "graded"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "EVD-SYNTH-A-ADD-001",
+      "attempt_id": "ATT-SYNTH-A-ADD-001",
+      "immutable": true
+    },
+    {
+      "id": "EVD-SYNTH-A-ADD-002",
+      "attempt_id": "ATT-SYNTH-A-ADD-002",
+      "immutable": true
+    },
+    {
+      "id": "EVD-SYNTH-A-ADD-003",
+      "attempt_id": "ATT-SYNTH-A-ADD-003",
+      "immutable": true
+    },
+    {
+      "id": "EVD-SYNTH-A-ADD-004",
+      "attempt_id": "ATT-SYNTH-A-ADD-004",
+      "immutable": true
+    },
+    {
+      "id": "EVD-SYNTH-B-ADD-001",
+      "attempt_id": "ATT-SYNTH-B-ADD-001",
+      "immutable": true
+    },
+    {
+      "id": "EVD-SYNTH-B-ADD-002",
+      "attempt_id": "ATT-SYNTH-B-ADD-002",
+      "immutable": true
+    },
+    {
+      "id": "EVD-SYNTH-B-ADD-003",
+      "attempt_id": "ATT-SYNTH-B-ADD-003",
+      "immutable": true
+    },
+    {
+      "id": "EVD-SYNTH-B-ADD-004",
+      "attempt_id": "ATT-SYNTH-B-ADD-004",
+      "immutable": true
+    },
+    {
+      "id": "EVD-SYNTH-A-MULT-001",
+      "attempt_id": "ATT-SYNTH-A-MULT-001",
+      "immutable": true
+    }
+  ],
+  "denials": [
+    {
+      "id": "DNY-SYNTH-GUARDIAN-B-REPORT",
+      "actor_id": "GRD-SYNTH-B-PENDING",
+      "action": "read_student_progress_report",
+      "student_id": "STU-SYNTH-B",
+      "outcome": "authorisation_denied",
+      "reason": "guardian_link_not_verified_or_consented"
+    }
+  ],
+  "escalations": [
+    {
+      "id": "ESC-SYNTH-UNSUPPORTED-CONTENT",
+      "request_id": "REQ-SYNTH-DECIMALS-001",
+      "requested_topic_id": "DECIMALS",
+      "outcome": "unsupported_content",
+      "reason": "no_approved_source_or_template_in_fractions_contract_v1",
+      "requires_tutor_review": true
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "ART-SYNTH-MASTERY-A-ADD",
+      "type": "mastery_proposal",
+      "student_id": "STU-SYNTH-A",
+      "subskill_id": "FRC-ADD-SUB-UNLIKE",
+      "policy_id": "mastery_policy_v1",
+      "status": "pending_tutor_review"
+    },
+    {
+      "id": "ART-SYNTH-MASTERY-B-ADD",
+      "type": "mastery_proposal",
+      "student_id": "STU-SYNTH-B",
+      "subskill_id": "FRC-ADD-SUB-UNLIKE",
+      "policy_id": "mastery_policy_v1",
+      "status": "pending_tutor_review"
+    },
+    {
+      "id": "ART-SYNTH-PRACTICE-A-ADD",
+      "type": "practice_draft",
+      "student_id": "STU-SYNTH-A",
+      "subskill_id": "FRC-ADD-SUB-UNLIKE",
+      "status": "draft_pending_tutor_approval"
+    },
+    {
+      "id": "ART-SYNTH-PRACTICE-B-ADD",
+      "type": "practice_draft",
+      "student_id": "STU-SYNTH-B",
+      "subskill_id": "FRC-ADD-SUB-UNLIKE",
+      "status": "draft_pending_tutor_approval"
+    }
+  ],
+  "golden_expectations": {
+    "expected_counts": {
+      "centres": 1,
+      "tutors": 2,
+      "students": 2,
+      "classes": 1,
+      "enrolments": 2,
+      "guardian_links": 2,
+      "curriculum_chunks": 4,
+      "approved_questions": 15,
+      "attempts": 9,
+      "evidence": 9,
+      "denials": 1,
+      "escalations": 1,
+      "artifacts": 4
+    },
+    "mastery": [
+      {
+        "student_id": "STU-SYNTH-A",
+        "subskill_id": "FRC-ADD-SUB-UNLIKE",
+        "eligible_attempts": 4,
+        "correct_attempts": 1,
+        "accuracy": 0.25,
+        "confidence": 0.8,
+        "label": "requires_support"
+      },
+      {
+        "student_id": "STU-SYNTH-B",
+        "subskill_id": "FRC-ADD-SUB-UNLIKE",
+        "eligible_attempts": 4,
+        "correct_attempts": 4,
+        "accuracy": 1.0,
+        "confidence": 0.8,
+        "label": "secure"
+      },
+      {
+        "student_id": "STU-SYNTH-A",
+        "subskill_id": "FRC-MULTIPLY-WHOLE",
+        "eligible_attempts": 1,
+        "correct_attempts": 1,
+        "accuracy": 1.0,
+        "confidence": 0.35,
+        "label": "insufficient_evidence"
+      }
+    ],
+    "practice_divergence": [
+      {
+        "student_id": "STU-SYNTH-A",
+        "requested_subskill_id": "FRC-ADD-SUB-UNLIKE",
+        "expected_label": "requires_support",
+        "expected_difficulty": "foundation",
+        "expected_question_id": "Q-FRC-ADD-005",
+        "expected_artifact_id": "ART-SYNTH-PRACTICE-A-ADD"
+      },
+      {
+        "student_id": "STU-SYNTH-B",
+        "requested_subskill_id": "FRC-ADD-SUB-UNLIKE",
+        "expected_label": "secure",
+        "expected_difficulty": "stretch",
+        "expected_question_id": "Q-FRC-ADD-006",
+        "expected_artifact_id": "ART-SYNTH-PRACTICE-B-ADD"
+      }
+    ],
+    "workflow_paths": [
+      {
+        "path": "normal",
+        "evidence": "ART-SYNTH-PRACTICE-A-ADD",
+        "expected_status": "draft_pending_tutor_approval"
+      },
+      {
+        "path": "insufficient_evidence",
+        "evidence": "STU-SYNTH-A/FRC-MULTIPLY-WHOLE",
+        "expected_label": "insufficient_evidence"
+      },
+      {
+        "path": "denied_authorisation",
+        "evidence": "DNY-SYNTH-GUARDIAN-B-REPORT",
+        "expected_outcome": "authorisation_denied"
+      },
+      {
+        "path": "unsupported_content",
+        "evidence": "ESC-SYNTH-UNSUPPORTED-CONTENT",
+        "expected_outcome": "unsupported_content"
+      }
+    ]
+  }
+}

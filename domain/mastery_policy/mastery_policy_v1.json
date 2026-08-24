@@ -1,0 +1,85 @@
+{
+  "$schema": "../../fixtures/schema/s0_fixture.schema.json",
+  "policy_id": "mastery_policy_v1",
+  "version": "1.0.0",
+  "name": "Deterministic fractions mastery policy",
+  "scope": {
+    "subject_id": "MATHEMATICS",
+    "level_id": "PRIMARY_5",
+    "contract_version": "fractions_contract_v1"
+  },
+  "evidence_eligibility": {
+    "required_question_status": "approved",
+    "required_answer_type": "objective_exact",
+    "required_source_ids": [
+      "SRC-SYNTH-FRACTIONS-V1"
+    ],
+    "exclude_if": [
+      "authorisation_denied",
+      "unsupported_content",
+      "tutor_voided"
+    ]
+  },
+  "calculation": {
+    "accuracy": "correct_attempts / eligible_attempts",
+    "confidence": "min(0.90, 0.20 + 0.15 * eligible_attempts)",
+    "confidence_base": 0.2,
+    "confidence_per_attempt": 0.15,
+    "confidence_cap": 0.9,
+    "rounding": "round half up to 2 decimal places",
+    "minimum_attempts_for_mastery_label": 3
+  },
+  "outcomes": [
+    {
+      "label": "insufficient_evidence",
+      "when": "eligible_attempts < 3",
+      "maximum_attempts_exclusive": 3,
+      "rank": 0,
+      "practice_difficulty": "foundation",
+      "action": "collect_more_evidence"
+    },
+    {
+      "label": "requires_support",
+      "when": "eligible_attempts >= 3 and accuracy < 0.60",
+      "minimum_attempts": 3,
+      "maximum_accuracy_exclusive": 0.6,
+      "rank": 1,
+      "practice_difficulty": "foundation",
+      "action": "targeted_remediation"
+    },
+    {
+      "label": "developing",
+      "when": "eligible_attempts >= 3 and 0.60 <= accuracy < 0.80",
+      "minimum_attempts": 3,
+      "minimum_accuracy": 0.6,
+      "maximum_accuracy_exclusive": 0.8,
+      "rank": 2,
+      "practice_difficulty": "core",
+      "action": "guided_practice"
+    },
+    {
+      "label": "secure",
+      "when": "eligible_attempts >= 3 and accuracy >= 0.80",
+      "minimum_attempts": 3,
+      "minimum_accuracy": 0.8,
+      "rank": 3,
+      "practice_difficulty": "stretch",
+      "action": "extension_practice"
+    }
+  ],
+  "selection": {
+    "request_scope": "one requested sub-skill",
+    "exclude_previously_attempted_questions": true,
+    "sort": [
+      "selection_rank ascending",
+      "question_id ascending"
+    ],
+    "fallback": "create_tutor_escalation_no_approved_candidate"
+  },
+  "non_goals": [
+    "LLM judgement",
+    "free-text grading",
+    "cross-sub-skill inference",
+    "automatic assignment"
+  ]
+}

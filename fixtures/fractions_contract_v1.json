@@ -1,0 +1,289 @@
+{
+  "$schema": "schema/s0_fixture.schema.json",
+  "contract_id": "fractions_contract_v1",
+  "version": "1.0.0",
+  "synthetic_only": true,
+  "scope": {
+    "subject_id": "MATHEMATICS",
+    "subject_name": "Mathematics",
+    "level_id": "PRIMARY_5",
+    "level_name": "Primary 5",
+    "topic_id": "FRACTIONS",
+    "topic_name": "Fractions"
+  },
+  "temporary_source_assumption": {
+    "decision_record": "docs/decisions/ADR-0001-synthetic-fractions-content.md",
+    "approved_for_fixture_use": true,
+    "external_content_allowed": false,
+    "revisit_before": [
+      "real-model integration",
+      "deployment",
+      "final submission"
+    ]
+  },
+  "sources": [
+    {
+      "id": "SRC-SYNTH-FRACTIONS-V1",
+      "title": "SMYA self-authored synthetic fractions corpus v1",
+      "kind": "synthetic_self_authored",
+      "licence_dependency": "none_for_fixture_content",
+      "approved": true,
+      "usage": "test fixtures and golden outcomes only"
+    }
+  ],
+  "subskills": [
+    {
+      "id": "FRC-EQUIVALENCE",
+      "name": "Equivalent fractions and simplest form",
+      "prerequisites": []
+    },
+    {
+      "id": "FRC-COMPARE-ORDER",
+      "name": "Compare and order fractions",
+      "prerequisites": [
+        "FRC-EQUIVALENCE"
+      ]
+    },
+    {
+      "id": "FRC-ADD-SUB-UNLIKE",
+      "name": "Add and subtract fractions with unlike denominators",
+      "prerequisites": [
+        "FRC-EQUIVALENCE"
+      ]
+    },
+    {
+      "id": "FRC-MULTIPLY-WHOLE",
+      "name": "Multiply a fraction by a whole number",
+      "prerequisites": [
+        "FRC-EQUIVALENCE"
+      ]
+    }
+  ],
+  "difficulty_bands": [
+    {
+      "id": "foundation",
+      "definition": "One operation; visualisable values; denominators no greater than 6."
+    },
+    {
+      "id": "core",
+      "definition": "One operation; unlike denominators with a least common multiple no greater than 12."
+    },
+    {
+      "id": "stretch",
+      "definition": "One operation with unlike denominators whose least common multiple is at most 24, or a non-unit multiplier."
+    }
+  ],
+  "question_templates": [
+    {
+      "id": "TPL-FRC-EQUIV-01",
+      "subskill_id": "FRC-EQUIVALENCE",
+      "format": "complete_or_simplify_fraction",
+      "answer_type": "objective_exact"
+    },
+    {
+      "id": "TPL-FRC-COMPARE-01",
+      "subskill_id": "FRC-COMPARE-ORDER",
+      "format": "compare_or_order_fractions",
+      "answer_type": "objective_exact"
+    },
+    {
+      "id": "TPL-FRC-ADD-SUB-01",
+      "subskill_id": "FRC-ADD-SUB-UNLIKE",
+      "format": "add_or_subtract_unlike_denominators",
+      "answer_type": "objective_exact"
+    },
+    {
+      "id": "TPL-FRC-MULTIPLY-01",
+      "subskill_id": "FRC-MULTIPLY-WHOLE",
+      "format": "multiply_fraction_by_whole_number",
+      "answer_type": "objective_exact"
+    }
+  ],
+  "questions": [
+    {
+      "id": "Q-FRC-EQUIV-001",
+      "source_id": "SRC-SYNTH-FRACTIONS-V1",
+      "subskill_id": "FRC-EQUIVALENCE",
+      "template_id": "TPL-FRC-EQUIV-01",
+      "difficulty": "foundation",
+      "prompt": "Write an equivalent fraction to 1/2 with denominator 4.",
+      "expected_answer": "2/4",
+      "answer_type": "objective_exact",
+      "status": "approved",
+      "selection_rank": 10
+    },
+    {
+      "id": "Q-FRC-EQUIV-002",
+      "source_id": "SRC-SYNTH-FRACTIONS-V1",
+      "subskill_id": "FRC-EQUIVALENCE",
+      "template_id": "TPL-FRC-EQUIV-01",
+      "difficulty": "core",
+      "prompt": "Write 6/9 in simplest form.",
+      "expected_answer": "2/3",
+      "answer_type": "objective_exact",
+      "status": "approved",
+      "selection_rank": 20
+    },
+    {
+      "id": "Q-FRC-EQUIV-003",
+      "source_id": "SRC-SYNTH-FRACTIONS-V1",
+      "subskill_id": "FRC-EQUIVALENCE",
+      "template_id": "TPL-FRC-EQUIV-01",
+      "difficulty": "stretch",
+      "prompt": "Complete: 3/5 = __/20.",
+      "expected_answer": "12/20",
+      "answer_type": "objective_exact",
+      "status": "approved",
+      "selection_rank": 30
+    },
+    {
+      "id": "Q-FRC-COMPARE-001",
+      "source_id": "SRC-SYNTH-FRACTIONS-V1",
+      "subskill_id": "FRC-COMPARE-ORDER",
+      "template_id": "TPL-FRC-COMPARE-01",
+      "difficulty": "foundation",
+      "prompt": "Which is greater: 3/4 or 2/3? Answer with the greater fraction.",
+      "expected_answer": "3/4",
+      "answer_type": "objective_exact",
+      "status": "approved",
+      "selection_rank": 10
+    },
+    {
+      "id": "Q-FRC-COMPARE-002",
+      "source_id": "SRC-SYNTH-FRACTIONS-V1",
+      "subskill_id": "FRC-COMPARE-ORDER",
+      "template_id": "TPL-FRC-COMPARE-01",
+      "difficulty": "core",
+      "prompt": "Order 1/2, 3/4, 2/3 from least to greatest.",
+      "expected_answer": "1/2,2/3,3/4",
+      "answer_type": "objective_exact",
+      "status": "approved",
+      "selection_rank": 20
+    },
+    {
+      "id": "Q-FRC-COMPARE-003",
+      "source_id": "SRC-SYNTH-FRACTIONS-V1",
+      "subskill_id": "FRC-COMPARE-ORDER",
+      "template_id": "TPL-FRC-COMPARE-01",
+      "difficulty": "stretch",
+      "prompt": "Which is smaller: 7/12 or 5/8? Answer with the smaller fraction.",
+      "expected_answer": "7/12",
+      "answer_type": "objective_exact",
+      "status": "approved",
+      "selection_rank": 30
+    },
+    {
+      "id": "Q-FRC-ADD-001",
+      "source_id": "SRC-SYNTH-FRACTIONS-V1",
+      "subskill_id": "FRC-ADD-SUB-UNLIKE",
+      "template_id": "TPL-FRC-ADD-SUB-01",
+      "difficulty": "foundation",
+      "prompt": "Calculate: 1/2 + 1/4.",
+      "expected_answer": "3/4",
+      "answer_type": "objective_exact",
+      "status": "approved",
+      "selection_rank": 10
+    },
+    {
+      "id": "Q-FRC-ADD-002",
+      "source_id": "SRC-SYNTH-FRACTIONS-V1",
+      "subskill_id": "FRC-ADD-SUB-UNLIKE",
+      "template_id": "TPL-FRC-ADD-SUB-01",
+      "difficulty": "core",
+      "prompt": "Calculate: 2/3 - 1/6.",
+      "expected_answer": "1/2",
+      "answer_type": "objective_exact",
+      "status": "approved",
+      "selection_rank": 20
+    },
+    {
+      "id": "Q-FRC-ADD-003",
+      "source_id": "SRC-SYNTH-FRACTIONS-V1",
+      "subskill_id": "FRC-ADD-SUB-UNLIKE",
+      "template_id": "TPL-FRC-ADD-SUB-01",
+      "difficulty": "core",
+      "prompt": "Calculate: 3/4 + 1/8.",
+      "expected_answer": "7/8",
+      "answer_type": "objective_exact",
+      "status": "approved",
+      "selection_rank": 21
+    },
+    {
+      "id": "Q-FRC-ADD-004",
+      "source_id": "SRC-SYNTH-FRACTIONS-V1",
+      "subskill_id": "FRC-ADD-SUB-UNLIKE",
+      "template_id": "TPL-FRC-ADD-SUB-01",
+      "difficulty": "stretch",
+      "prompt": "Calculate: 7/8 - 1/4.",
+      "expected_answer": "5/8",
+      "answer_type": "objective_exact",
+      "status": "approved",
+      "selection_rank": 31
+    },
+    {
+      "id": "Q-FRC-ADD-005",
+      "source_id": "SRC-SYNTH-FRACTIONS-V1",
+      "subskill_id": "FRC-ADD-SUB-UNLIKE",
+      "template_id": "TPL-FRC-ADD-SUB-01",
+      "difficulty": "foundation",
+      "prompt": "Calculate: 1/3 + 1/6.",
+      "expected_answer": "1/2",
+      "answer_type": "objective_exact",
+      "status": "approved",
+      "selection_rank": 11
+    },
+    {
+      "id": "Q-FRC-ADD-006",
+      "source_id": "SRC-SYNTH-FRACTIONS-V1",
+      "subskill_id": "FRC-ADD-SUB-UNLIKE",
+      "template_id": "TPL-FRC-ADD-SUB-01",
+      "difficulty": "stretch",
+      "prompt": "Calculate: 7/12 - 1/8.",
+      "expected_answer": "11/24",
+      "answer_type": "objective_exact",
+      "status": "approved",
+      "selection_rank": 30
+    },
+    {
+      "id": "Q-FRC-MULT-001",
+      "source_id": "SRC-SYNTH-FRACTIONS-V1",
+      "subskill_id": "FRC-MULTIPLY-WHOLE",
+      "template_id": "TPL-FRC-MULTIPLY-01",
+      "difficulty": "foundation",
+      "prompt": "Calculate: 2 × 1/3.",
+      "expected_answer": "2/3",
+      "answer_type": "objective_exact",
+      "status": "approved",
+      "selection_rank": 10
+    },
+    {
+      "id": "Q-FRC-MULT-002",
+      "source_id": "SRC-SYNTH-FRACTIONS-V1",
+      "subskill_id": "FRC-MULTIPLY-WHOLE",
+      "template_id": "TPL-FRC-MULTIPLY-01",
+      "difficulty": "core",
+      "prompt": "Calculate: 3 × 2/5.",
+      "expected_answer": "6/5",
+      "answer_type": "objective_exact",
+      "status": "approved",
+      "selection_rank": 20
+    },
+    {
+      "id": "Q-FRC-MULT-003",
+      "source_id": "SRC-SYNTH-FRACTIONS-V1",
+      "subskill_id": "FRC-MULTIPLY-WHOLE",
+      "template_id": "TPL-FRC-MULTIPLY-01",
+      "difficulty": "stretch",
+      "prompt": "Calculate: 4 × 3/8.",
+      "expected_answer": "3/2",
+      "answer_type": "objective_exact",
+      "status": "approved",
+      "selection_rank": 30
+    }
+  ],
+  "mastery_policy": {
+    "policy_id": "mastery_policy_v1",
+    "version": "1.0.0",
+    "path": "domain/mastery_policy/mastery_policy_v1.json"
+  }
+}
