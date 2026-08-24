@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smya.example/schemas/s0_fixture.schema.json",
+  "title": "SMYA S0 synthetic fixture structural schema",
+  "type": "object",
+  "$defs": {
+    "identifiedRecord": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "question": {
+      "type": "object",
+      "required": [
+        "id",
+        "source_id",
+        "subskill_id",
+        "template_id",
+        "difficulty",
+        "prompt",
+        "expected_answer",
+        "answer_type",
+        "status",
+        "selection_rank"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "source_id": {
+          "type": "string"
+        },
+        "subskill_id": {
+          "type": "string"
+        },
+        "template_id": {
+          "type": "string"
+        },
+        "difficulty": {
+          "enum": [
+            "foundation",
+            "core",
+            "stretch"
+          ]
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "expected_answer": {
+          "type": "string"
+        },
+        "answer_type": {
+          "const": "objective_exact"
+        },
+        "status": {
+          "const": "approved"
+        },
+        "selection_rank": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}
