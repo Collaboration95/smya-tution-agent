@@ -1,0 +1,132 @@
+SMYA context.md — Probing Questions (Ranked)
+==========================================
+Source: context.md (1015 lines, last consolidated 23 Aug 2026)
+Supporting docs: example-scenario.txt, docs/agent-system-design.txt, docs/website-info.txt
+Project: NUS-ISS Show Me Your Agents — SME Co-Tutor OS for Small Tuition Centre
+Generated: 2026-08-23 | Method: 27 candidates drafted, then secondary agent ranked on Insightfulness / Actionability / Judging Relevance (1-10, avg)
+
+Ranking method
+--------------
+Score = (Insightfulness + Actionability + Judging Relevance) / 3
+Tie-break: Actionability > Insightfulness > Judging Relevance
+Secondary agent bias: prioritize questions that unblock architecture/product decisions before coding.
+
+----------------------------------------------------------------
+FINAL CURATED SET — Top 15 (use these in review meeting)
+----------------------------------------------------------------
+Rank | ID | Category | Title | Avg | File:Line | Question
+-----|----|----------|-------|-----|-------------|------------------------------------------
+ 1  |  5 | Agentic | Proving Agentic-ness | 9.67 | context.md:97-105 | The 7-point agent definition is strict. What observable, demo-visible artifact (agent_jobs row + agent_runs tool trace + versioned artifact) proves workers are bounded, event-triggered, and independently retryable — in a way a prompt+DB wrapper could not fake? What will judges see on screen?
+ 2  | 10 | Data/Mastery | Mastery Scoring Rules vs LLM | 9.33 | context.md:336,304-343 | Is "4 errors in 6 unlike-denominator questions = medium confidence needs_tutor_review" produced by deterministic rules or LLM judgment? If LLM, how to prevent hallucinated confidence? If rules, why need an LLM for diagnosis at all? Decide before building diagnostic worker.
+ 3  |  8 | Security/Flow | Approval Bypass Risk | 9.00 | context.md:345-366,499-508 | What prevents save_assessment_draft or purely generated questions from silently auto-assigning without tutor review? Is there an explicit draft -> pending_approval -> approved -> assigned FSM with a test that unapproved delivery is rejected?
+ 4  | 22 | Build Risk | Build Order Sequencing | 8.67 | context.md:945-951 | Phase 1 "reliable core without LLM" (schema + RBAC + mastery_evidence + approval + dashboard + practice flow) is already ~80% of work. What's the vertical-slice plan to reach an agentic demo by 28 Sep instead of shipping only CRUD + never reaching Phase 2?
+ 5  |  7 | Security/Arch | Trust Boundary / Tool Enforcement | 8.67 | context.md:133,418-450 | Where does access control live? Doc says "model never has arbitrary SQL" — is that enforced in typed tool code (filtering approval_status=approved, scoped student ownership, guardian_link check) or only in prompt? Can injection make retrieve_approved_curriculum leak unapproved content?
+ 6  | 13 | UX/Data | Divergence Guarantee (A vs B) | 8.67 | context.md:565-579 | Demo story promises Student A (weak) and Student B (strong) receive different practice for the same request. What minimal mechanism guarantees find_question_candidates diverges based on mastery_proposal? Could caching/retrieval make them identical on replay?
+ 7  |  3 | Product/Scope | Trivial Scope Risk | 8.67 | context.md:223-225 | Is 1 subject x 3-5 fractions sub-skills sufficient to feel like an "operating system" rather than a branching quiz? How to frame it so judges see workflow depth (diagnosis -> draft -> approval -> audit -> parent report) not curriculum breadth?
+ 8  | 11 | Data Model | Canonical Truth & Conflict | 8.33 | context.md:270-285 | mastery_evidence vs mastery_proposals vs tutor_observations vs tutor_corrections — who wins when they contradict? Define canonical rule (e.g., evidence immutable, mastery_state derived & versioned, tutor_correction overrides) before downstream practice generation breaks.
+ 9  |  6 | Agentic | Agent Granularity | 8.33 | context.md:304-423 | Are diagnostic, assessment, parent-report genuinely distinct agents (different objectives, I/O schemas, tool allow-lists) or one LLM with three prompts? Is splitting into 5 job types premature abstraction vs one worker + 3 structured-output schemas?
+10  |  1 | Product | SME Problem Validation | 8.00 | context.md:58-63 | "Tutor capacity problem" is asserted. Have we validated with at least one real tuition centre interview that preparation/marking/reporting is the top pain vs enrolment/payments? Without this, first judging criterion ("Relevant to real SME need") is assumed.
+11  |  2 | Product/Business | Buyer vs User Alignment | 8.00 | context.md:192-216 | Owner pays, tutor saves time, parent values reports. Who is the economic buyer for pilot, what is willingness to pay (Lightsail+S3+Bedrock cost), and why would they adopt versus free worksheets + ChatGPT?
+12  | 16 | Security/Demo | Demo Security Theater | 7.67 | context.md:249-251,858-873 | "Real role checks but seeded demo users" is a claim until demoed. Can we script live 403 cases: student cannot see another student's data, unverified parent link blocks report delivery, tutor cannot approve unassigned student?
+13  | 23 | Demo/Risk | Demo Fragility | 7.33 | context.md:564-582 | The 9-step story is strictly sequential; if diagnostic worker fails live, entire demo collapses. What's the fallback — pre-seeded artifacts for each flow (C, D, F, H) that can be replayed independently?
+14  | 21 | Metrics | Measuring "Minutes Saved" | 7.33 | context.md:843-853 | Doc lists "tutor minutes saved per student per week" but no measurement protocol. Will judges accept synthetic before/after estimate, or do we need timed click-count / task-completion benchmark with a real tutor walkthrough?
+15  | 12 | UX/Flow | Cold-Start Workload Spike | 7.33 | context.md:306,483-496 | With only a 12-question diagnostic, every new student starts low-confidence. Does this flood the tutor queue and *increase* workload initially? What's the mitigation — threshold tuning, batch review, or "collect one more example" alternative_explanation?
+
+Additional recommendation from secondary agent: Add seeded fallback artifacts and resolve #10/#11/#8 before writing code this week; deprioritize low-blocking items (#15 safety theater, #24 IP, #18 prompt portability).
+
+----------------------------------------------------------------
+FULL RANKED LIST — All 27 (descending Avg)
+----------------------------------------------------------------
+Rank | ID | Title | I/A/J | Avg | Reason
+-----|----|-------|-------|-----|------------------------------------------
+  1  |  5 | Proving Agentic-ness | 10/9/10 | 9.67 | Doc defines 7-point agent strictly; without visible job+trace+artifact judges will fail "Genuinely agentic."
+  2  | 10 | Mastery Scoring | 10/10/8 | 9.33 | Straddles rules vs LLM judgment — worker unbuildable until decided.
+  3  |  8 | Approval Bypass Risk | 9/10/8 | 9.00 | Auto-assign bug would violate human-in-loop promise.
+  4  | 22 | Build Order Sequencing Risk | 9/10/7 | 8.67 | Phase 1 is 80% work; risk of never reaching agentic demo.
+  5  |  7 | Trust Boundary / Tool Enforcement | 9/9/8 | 8.67 | Needs server-side filtering, not prompt-only.
+  6  | 13 | Divergence Guarantee | 8/9/9 | 8.67 | Must guarantee A vs B different practice.
+  7  |  3 | Trivial Scope Risk | 9/8/9 | 8.67 | Risks "branching quiz, not OS" label.
+  8  | 11 | Data Model Conflict Resolution | 9/9/7 | 8.33 | No canonical truth rule for competing mastery records.
+  9  |  6 | Agent Granularity | 8/9/8 | 8.33 | 5 job types may be premature abstraction.
+ 10  |  1 | SME Problem Validation | 8/7/9 | 8.00 | Capacity problem asserted without SME interview.
+ 11  |  2 | Buyer vs User Alignment | 8/8/8 | 8.00 | Payer incentive unresolved for pilot.
+ 12  | 16 | Demo Security Theater | 7/8/8 | 7.67 | Need live 403 demo, not claim.
+ 13  | 23 | Demo Fragility | 7/7/8 | 7.33 | 9-step chain has no independent fallback.
+ 14  | 21 | Measuring "Minutes Saved" | 7/7/8 | 7.33 | ROI needs measurement protocol, not estimate.
+ 15  | 12 | Cold-Start Workload Increase | 8/8/6 | 7.33 | Low-confidence floods tutor initially.
+ 16  | 17 | Worker Failure & Idempotency | 8/8/6 | 7.33 | Crash after artifact write before job status update = orphan/duplicate on retry.
+ 17  | 14 | Progress Time-Series Gap | 7/8/6 | 7.00 | Schema stores latest snapshot, not mastery deltas needed for "improvement since last period."
+ 18  |  4 | Curriculum Grounding Theater | 7/7/6 | 6.67 | Hallucinated alignment indistinguishable without chunk coverage eval.
+ 19  | 20 | Cost vs Tutor Wage ROI | 7/6/7 | 6.67 | Token cost must pencil out vs SGD 40-60/hr tutor wage.
+ 20  |  9 | Practice-Session Coordinator Agentic Claim | 6/6/7 | 6.33 | Doc already disclaims it as deterministic; exclude from agentic count.
+ 21  | 19 | Retrieval Overengineering | 6/7/5 | 6.00 | 50 chunks may not need pgvector; keyword+tags cheaper.
+ 22  | 26 | Memory vs Profiling Line | 7/6/5 | 6.00 | Line between allowed mastery_evidence history and disallowed profiling undefined for PDPA.
+ 23  | 27 | Channel Independence vs Mobile Reality | 7/5/6 | 6.00 | Website-only MVP undermines "practice between lessons" for mobile users.
+ 24  | 18 | Prompt Portability | 6/6/5 | 5.67 | Structured-output drift across Fake/Groq/Nova solved by ModelClient+Pydantic.
+ 25  | 25 | Pilot Cost Sensitivity | 6/5/6 | 5.67 | Lightsail $20-60/mo is rounding error; who-pays is negotiable.
+ 26  | 15 | Safety Scope Mismatch | 6/5/5 | 5.33 | Distress/safeguarding for fractions is theater; real risk is data leakage.
+ 27  | 24 | Generated Question IP | 5/4/4 | 4.33 | Open-source licence for LLM-generated questions is niche for hackathon.
+
+Top 15 IDs in order: 5, 10, 8, 22, 7, 13, 3, 11, 6, 1, 2, 16, 23, 21, 12
+Top 10 load-bearing before coding: 5, 10, 8, 22, 7, 13, 3, 11, 6, 1
+
+----------------------------------------------------------------
+DUPLICATES / MERGE CLUSTERS (identified by secondary agent)
+----------------------------------------------------------------
+Cluster A - Agentic-ness: #5 + #6 + #9 -> Merge. #5 is thesis (prove agentic), #6 is granularity, #9 is trap answer. Keep #5 primary, #6 as sub-question, drop #9 standalone.
+Cluster B - Security: #7 + #8 + #16 -> Merge. #7 where enforcement lives, #8 FSM bypass, #16 how to demo it. Single action: tool-layer enforcement + draft->approved->assigned FSM + live 403.
+Cluster C - Data model: #11 + #14 -> Merge. #11 canonical truth + #14 missing time-series. One ERD decision: mastery_evidence (immutable) + mastery_state (derived, versioned) + tutor_correction wins.
+Cluster D - ROI/Measurement: #20 + #21 + #25 -> Merge. #21 measurement protocol, #20 unit cost, #25 pilot payer. Single metric sheet.
+Cluster E - Retrieval: #4 + #19 -> Merge. #19 do we need vectors? + #4 prove grounding. Resolution: keyword+tags for MVP, pgvector optional, require source_id on every generated question.
+Partial overlap: #1 + #2 keep both but sequence: validate problem (#1) before locking payer (#2).
+
+----------------------------------------------------------------
+UNDER-REPRESENTED CATEGORIES (gap analysis)
+----------------------------------------------------------------
+- Evaluation rigor: Beyond golden set context.md:809-817, how to score "agreement with tutor diagnosis" blind? Who is oracle tutor? No inter-rater reliability.
+- Data lifecycle / PDPA: Retention/deletion of attempt_answers for minors, export on centre off-boarding. Needed for "Secure and responsible."
+- Multi-tenancy: Schema has classes but no centre_id isolation; seeded multi-centre data risks cross-centre leak.
+- Offline/latency fallback: Bedrock Nova quota in ap-southeast-1 or Lightsail cold-start kills 9-step demo; no timeout/retry UX.
+- Differentiation moat: Why not ChatGPT + Google Sheets? What is defensible vs free worksheets?
+
+----------------------------------------------------------------
+QUESTIONS GROUPED BY THEME (for workshop use)
+----------------------------------------------------------------
+[Product & Judging] #1, #2, #3, #21, #25
+[Agentic Definition] #5, #6, #9, #10
+[Security & Permissions] #7, #8, #16, #15
+[Data & Mastery] #11, #14, #12, #13, #26
+[Architecture & Infra] #17, #18, #19, #4, #22
+[Demo & Risk] #23, #13, #3
+[Cost & ROI] #20, #21, #25
+[Scope & Channel] #27, #19, #26
+
+----------------------------------------------------------------
+LOWER-PRIORITY BUT INCLUDED FOR COMPLETENESS (Rank 16-27)
+----------------------------------------------------------------
+16. Worker Failure & Idempotency (8/8/6, 7.33) — context.md:658 | If fallback worker crashes after artifacts write but before agent_jobs.status update, what's retry semantics? Need idempotency key (job_id + artifact_version).
+17. Progress Time-Series Gap (7/8/6, 7.00) — context.md:198,270-285 | Parent report needs delta but schema only stores evidence IDs/snapshot. Need mastery_state_history or versioned proposals.
+18. Curriculum Grounding Theater (7/7/6, 6.67) — context.md:782-788 | How to eval that generated question truly cites approved chunks vs hallucinates? Require chunk coverage test.
+19. Cost vs Tutor Wage ROI (7/6/7, 6.67) | 30+ calls for 10 students vs tutor hourly rate — need per-workflow token budget sheet for "measurably beneficial" claim.
+20. Practice-Session Coordinator Agentic Claim (6/6/7, 6.33) — context.md:375 | Already disclaimed as deterministic; don't count toward agentic narrative, avoid judge nitpick.
+21. Retrieval Overengineering (6/7/5, 6.00) — context.md:294 | 50 chunks don't justify pgvector; start with tag/keyword filter.
+22. Memory vs Profiling Line (7/6/5, 6.00) — context.md:248 | Where is allowed mastery history vs disallowed profiling? Clarify retention boundary.
+23. Channel Independence vs Mobile Reality (7/5/6, 6.00) — context.md:87 | Website-only MVP weakens "between lessons" prop; acknowledge as Phase 2 Telegram.
+24. Prompt Portability (6/6/5, 5.67) — context.md:669-677 | Already mitigated by ModelClient + Pydantic validation.
+25. Pilot Cost Sensitivity (6/5/6, 5.67) — context.md:631 | $20-60/mo Lightsail trivial; handle as "free pilot" for hackathon.
+26. Safety Scope Mismatch (6/5/5, 5.33) — context.md:871 | Safeguarding for fractions over-engineered; focus on data leakage.
+27. Generated Question IP (5/4/4, 4.33) — context.md:44 | Licence for LLM-generated questions; not judge-relevant for prototype, defer.
+
+----------------------------------------------------------------
+HOW TO USE THIS FILE
+----------------------------------------------------------------
+1. Review Top 10 before any code — decisions on #5/#10/#8/#7/#11 block schema and worker contracts.
+2. Use Cluster merges to reduce review to 5 decisions: Agentic proof, Trust/FSM, Canonical state, ROI sheet, Retrieval.
+3. Schedule SME validation (#1/#2) before 5 Sep kickoff — interview one tuition centre owner + one tutor.
+4. Convert #22 into vertical slice: Day 1-5 ship one end-to-end flow (diagnostic -> proposal -> approval) with fake model, not full Phase 1 CRUD.
+5. Prepare live demo scripts for #16 (403) and #23 (seeded fallback artifacts).
+6. Fill gap categories (evaluation rigor, PDPA retention, centre_id isolation) before submission.
+
+Secondary agent note: Doc is strongest on agent purism, weakest on "will a centre owner pay and can you ship before 28 Sep." Fix #22 + #10/#11 + #5/#7/#8 this week; deprioritize #15, #24, #18, #25.
+
+Full candidate prompts and justifications retained above; see git history for generation details.

@@ -1,0 +1,366 @@
+AI CO-TUTOR AGENT SYSTEM
+Flows, User Expectations, and Lean Technology Options
+
+PURPOSE
+
+This should be an agent-driven co-tutor system, not a normal CRUD web app with an
+LLM chat box attached. The system must interpret requests, maintain student
+context, plan multi-step work, use controlled tools, validate its outputs,
+request human approval when needed, and record what happened.
+
+The AI reduces repetitive tutor work. It does not replace the tutor's
+responsibility for teaching decisions, formal assessments, parent communication,
+or sensitive student situations.
+
+CORE DESIGN PRINCIPLES
+
+- Use a small number of specialised agents coordinated by one orchestrator.
+- Keep deterministic business logic outside the LLM: scoring, permissions,
+  identity checks, database writes, and approval requirements.
+- Give agents explicit tools with typed inputs and outputs. Do not give an agent
+  unrestricted database or messaging access.
+- Ground educational answers and generated questions in tutor-approved material.
+- Keep both short-term conversation state and durable learning state.
+- Every important recommendation should retain its evidence and confidence.
+- Any external, sensitive, or high-impact action should pause for human approval.
+- Make the system's decision path visible in a tutor-facing trace or audit log.
+
+USERS AND EXPECTED USAGE
+
+1. STUDENT
+
+Primary channel: Telegram bot for the prototype. A web or mobile client can be
+added later without changing the agent backend.
+
+The student should be able to:
+- Start an assigned quiz or a short practice session.
+- Answer one question at a time.
+- Ask for a staged hint or a simpler explanation.
+- Receive immediate feedback after an answer.
+- Continue with easier, similar, or harder questions.
+- Ask what topics need more practice.
+- View a simple personal progress summary.
+
+The interaction should feel like guided practice rather than an open-ended
+chat. The agent should use the student's level and current mastery state, not
+return the same generic answer to everyone.
+
+2. TUTOR
+
+Primary channel: simple tutor dashboard plus optional tutor commands.
+
+The tutor should be able to:
+- View each student's topic and sub-skill mastery map.
+- See the evidence behind a suspected weakness.
+- Review generated tests, questions, and explanations.
+- Approve, edit, or reject generated material.
+- View students who repeatedly fail, have low-confidence results, or need help.
+- Request a lesson plan or remediation activity.
+- Review and approve parent progress messages.
+- Correct the AI and feed the correction back into the student's record.
+
+The tutor is the human-in-the-loop control point. The dashboard should make it
+easy to approve or override the agent instead of hiding the model's output.
+
+3. PARENT
+
+Primary channel: approved Telegram message or email digest. For the MVP, the
+system should generate a draft and require tutor approval before delivery.
+
+The parent should receive:
+- Topics covered.
+- Practice or assignment completion.
+- Improvement since the previous period.
+- Topics needing more practice.
+- Suggested home activity.
+- A clear explanation of progress without technical AI language.
+
+Parents should not automatically receive raw student conversations or internal
+agent reasoning. The account must be linked to the correct student before any
+progress information is sent.
+
+4. CENTRE ADMINISTRATOR
+
+Primary channel: configuration screens or seeded setup data.
+
+The administrator should be able to:
+- Create classes, subjects, levels, and student records.
+- Link a student to an approved parent/guardian account.
+- Upload or select curriculum and centre-approved resources.
+- Define topics, sub-skills, difficulty levels, and assessment rules.
+- Manage tutor permissions and communication permissions.
+- View centre-level workload and outcome summaries.
+
+HIGH-LEVEL SYSTEM SHAPE
+
+Student via Telegram        Tutor via dashboard        Parent via digest
+          |                         |                         |
+          +----------- API / event gateway ------------------+
+                                      |
+                              Agent orchestrator
+                                      |
+       +------------------------------+------------------------------+
+       |              |               |              |                |
+  Profile/       Diagnostic       Assessment     Tutor/Knowledge   Communication
+  context agent    agent            agent            agent            agent
+       |              |               |              |                |
+       +--------------+---------------+--------------+----------------+
+                                      |
+                         Safety and quality checker
+                                      |
+                Typed tools + approval gates + audit log
+                                      |
+        Learning database       Curriculum knowledge       Message service
+
+The orchestrator should route the request and maintain the workflow state. The
+specialised agents should perform focused tasks. The application code should
+enforce permissions and approval gates before tools can write data or send
+messages.
+
+AGENT ROLES
+
+Orchestrator agent
+- Understands the incoming request and current workflow state.
+- Chooses the next specialised agent or tool.
+- Stops when human approval is required.
+- Returns a structured result, not only free-form text.
+
+Student profile agent
+- Loads the student's history, current goals, and recent attempts.
+- Maintains the durable topic/sub-skill mastery state.
+- Provides context to other agents.
+
+Diagnostic agent
+- Analyses question-level mistakes and answer patterns.
+- Distinguishes possible knowledge gaps from careless mistakes or insufficient
+  evidence.
+- Produces a weakness hypothesis, evidence list, confidence, and recommended
+  follow-up question.
+
+Assessment agent
+- Selects or generates questions from approved curriculum content.
+- Controls topic, sub-skill, difficulty, age level, question count, and format.
+- Produces an answer key, explanation, source reference, and quality metadata.
+
+Tutor assistant agent
+- Creates lesson plans, remediation activities, worksheets, and summaries.
+- Uses the student's mastery state and the tutor's instructions.
+
+Knowledge retrieval agent
+- Searches only approved curriculum and centre resources.
+- Returns relevant passages and source references to ground the response.
+- Escalates when the answer is outside the available knowledge.
+
+Communication agent
+- Converts structured progress data into student, tutor, or parent language.
+- Creates drafts only until the correct human approval is present.
+
+Safety and quality checker
+- Checks correctness, age-appropriateness, unsupported claims, privacy issues,
+  and low-confidence cases.
+- Prevents unsafe or unapproved content from being delivered.
+
+CORE TOOL CONTRACTS
+
+Agents should call small, typed tools such as:
+- get_student_context(student_id, current_session_id)
+- retrieve_curriculum(query, subject, level, topic)
+- get_mastery_state(student_id)
+- generate_assessment_spec(student_id, goals, difficulty, count)
+- save_assessment_draft(assessment)
+- record_answer(attempt_id, answer, grading_result)
+- update_mastery(student_id, evidence, confidence)
+- create_tutor_alert(student_id, reason, evidence)
+- create_parent_report_draft(student_id, reporting_period)
+- request_human_approval(action_type, payload, reason)
+- send_approved_message(recipient_id, message_id)
+
+The model should not directly update the database or send Telegram messages.
+The tool layer should validate the request, check permissions, and enforce the
+approval state before performing the action.
+
+END-TO-END FLOWS
+
+FLOW 0: CURRICULUM AND CENTRE SETUP
+
+Administrator uploads or selects an approved curriculum document.
+  -> Document parser extracts text and learning objectives.
+  -> Knowledge ingestion adds subject, level, topic, and source metadata.
+  -> Embeddings/index are created for retrieval.
+  -> Tutor reviews the material or marks it as approved.
+  -> Only approved material is available to the knowledge and assessment agents.
+
+FLOW 1: STUDENT ONBOARDING AND LINKING
+
+Admin/tutor creates a student record and selects subject/level.
+  -> System creates a secure student identifier and initial profile.
+  -> Parent/guardian link is verified through a one-time code or approved setup.
+  -> Student links their Telegram account through a controlled code or invite.
+  -> System records consent/permissions and creates a practice session context.
+  -> Student takes a baseline diagnostic.
+
+FLOW 2: BASELINE DIAGNOSTIC
+
+Student starts a diagnostic through Telegram.
+  -> Orchestrator loads subject, level, goals, and current state.
+  -> Assessment agent selects a tutor-approved baseline test.
+  -> Student answers one question at a time.
+  -> Deterministic grader handles objective answers; uncertain free-text answers
+     are sent for tutor review or a conservative fallback.
+  -> Diagnostic agent analyses mistakes by topic and sub-skill.
+  -> Profile agent stores mastery hypotheses with evidence and confidence.
+  -> Tutor dashboard shows priorities and recommended follow-up actions.
+
+FLOW 3: PERSONALISED PRACTICE
+
+Student selects /practice or opens an assigned quiz.
+  -> Orchestrator retrieves the student's mastery state and recent attempts.
+  -> Assessment agent plans a short session: revision, remediation, and/or
+     slightly harder material.
+  -> Quality checker validates the question, answer, source, and difficulty.
+  -> Student receives one question and can answer, request a hint, or ask for
+     an explanation.
+  -> Grader records the result and the profile agent updates the evidence.
+  -> Orchestrator decides whether to continue, adapt difficulty, or escalate.
+  -> Session summary is shown to the student and tutor.
+
+FLOW 4: TUTOR REVIEW AND LESSON PLANNING
+
+Tutor opens a student's profile or asks for the next lesson plan.
+  -> System retrieves mastery state, recent errors, tutor observations, and
+     relevant curriculum content.
+  -> Tutor assistant proposes priorities, explanations, and activities.
+  -> Tutor edits or approves the proposal.
+  -> Approved plan and corrections are stored for future context.
+  -> Assessment agent can create a differentiated worksheet from the approved
+     objectives.
+
+FLOW 5: PARENT PROGRESS UPDATE
+
+Scheduled job or tutor starts a reporting period.
+  -> Communication agent reads structured progress data, not raw chat history.
+  -> It drafts a short parent update with evidence-based progress and next steps.
+  -> Safety checker verifies recipient, privacy, tone, and unsupported claims.
+  -> Tutor reviews, edits, and approves the message.
+  -> Messaging tool sends it only to the verified parent account.
+  -> Delivery status and approved content are recorded in the audit log.
+
+FLOW 6: LOW-CONFIDENCE OR SENSITIVE CASE
+
+Agent detects an ambiguous question, unsupported curriculum topic, repeated
+failure, distress, safeguarding concern, or sensitive communication.
+  -> Agent stops instead of inventing an answer or taking an action.
+  -> System creates a tutor alert containing the request, evidence, and reason.
+  -> Tutor provides an answer, correction, or decision.
+  -> Agent delivers the approved response and stores the resolution.
+
+FLOW 7: TUTOR CORRECTION
+
+Tutor edits a generated question, explanation, diagnosis, or parent message.
+  -> System stores the original draft, the correction, and the approval event.
+  -> The corrected version is used for the current workflow.
+  -> The correction becomes evaluation data or future reference, subject to the
+     centre's policy; it should not silently change the model itself.
+
+TECHNOLOGY OPTIONS - RECOMMENDED LEAN STACK
+
+Backend and orchestration
+- Python.
+- FastAPI for the API and webhook endpoints.
+- Pydantic for typed request, response, tool, and agent-state models.
+- LangGraph for explicit stateful agent workflows, branching, retries, and
+  human-approval pauses. Use one graph per major workflow rather than many
+  independent autonomous agents.
+
+LLM and model access
+- Amazon Bedrock is the natural first option because the hackathon is
+  AWS-powered. Select one capable model available to the team and keep model
+  calls behind a small provider interface.
+- The provider interface should support structured output, tool/function calls,
+  and configurable temperature/token limits.
+
+Knowledge retrieval
+- Store curriculum documents in local project storage for the first demo or in
+  Amazon S3 if using AWS resources.
+- Extract and chunk content with source metadata.
+- Use PostgreSQL with pgvector, Chroma, or another small vector store for
+  retrieval. For a single-subject prototype, SQLite plus a local vector store
+  is sufficient.
+- Always return source references with retrieved content.
+
+Application data
+- SQLite is enough for the first prototype if the data is synthetic and the
+  demo is small.
+- Use PostgreSQL if concurrent Telegram sessions, multiple tutors, or richer
+  reporting becomes necessary.
+- Keep structured learning records separate from vectorised curriculum content.
+
+User interfaces
+- Telegram Bot API for student practice and optional parent notifications.
+- A small React/Next.js tutor dashboard for mastery maps, approvals, alerts, and
+  report drafts.
+- The parent interface can remain a reviewed Telegram/email message for the MVP.
+
+Background work
+- Use a simple scheduled Python task or manual "generate report" action for
+  parent updates. Do not introduce a workflow platform unless the prototype
+  actually needs it.
+
+Testing and visibility
+- pytest for deterministic tool and workflow tests.
+- Save representative agent traces as JSON for demo/debugging.
+- Use structured application logs containing run ID, student ID (synthetic in
+  the prototype), agent step, tool call, approval status, and outcome.
+- Create a small golden evaluation set containing correct answers, ambiguous
+  inputs, unsupported topics, and privacy/permission cases.
+
+AUTHENTICATION AND PERMISSIONS
+
+The prototype can use seeded users or simple role-based authentication, but the
+permission model must be real:
+- Students can access only their own practice and progress.
+- Parents can access only the linked student's approved summary.
+- Tutors can access assigned students and approve content.
+- Administrators can manage setup and permissions.
+- Only approved tools can write records or send messages.
+
+MINIMUM MVP BOUNDARY
+
+Build only:
+- One subject, one student level, and three to five sub-skills.
+- Synthetic profiles for several students.
+- Curriculum ingestion and grounded retrieval.
+- Baseline diagnostic and mastery evidence.
+- Personalised question generation.
+- Telegram-style practice interaction, real or simulated.
+- Tutor review dashboard with approve/edit/reject actions.
+- Parent progress report draft with approval gate.
+- Low-confidence escalation and a visible audit trail.
+
+Leave out initially:
+- Multiple subjects and every age group.
+- Full learning-management-system integration.
+- Billing, attendance management, and centre accounting.
+- Voice, video, and advanced multimodal tutoring.
+- Autonomous parent messaging.
+- Fully autonomous grading of unrestricted free-text answers.
+- Model fine-tuning and complex long-term memory.
+- Complex deployment, CI/CD, and infrastructure automation.
+
+DEMO ACCEPTANCE CHECKLIST
+
+The prototype is credible if a judge can see that:
+- The same request produces different practice for different students.
+- The agent uses curriculum context and shows evidence for its decisions.
+- A tutor can approve or correct generated content.
+- The system adapts after a student answer.
+- A low-confidence or sensitive case stops and escalates.
+- A parent report is generated from structured progress and requires approval.
+- Tool calls, approvals, and outcomes are traceable.
+- The business value can be measured against a tutor-workload baseline.
+
+The important implementation decision is to build a small, observable agent
+workflow with real state and approvals, then add a clean interface around it.
+The web dashboard and Telegram bot are channels; the agent orchestration,
+knowledge grounding, tool layer, and human-in-the-loop behaviour are the core
+project.

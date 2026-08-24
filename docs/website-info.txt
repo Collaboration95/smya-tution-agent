@@ -1,0 +1,126 @@
+NUS-ISS SHOW ME YOUR AGENTS HACKATHON
+Technical and Client Requirements (SME Category)
+
+Source:
+- https://www.iss.nus.edu.sg/show-me-your-agents
+- https://services-iss.nus.edu.sg/Runtime/Runtime/Form/NUS-ISS+Show+Me+Your+Agents+Hackathon+Powered+by+AWS/
+
+OBJECTIVE
+Build a practical, secure, pilot-ready agentic AI solution for a real SME business problem. The intended outcomes are improved productivity, workflow automation, customer engagement, operational efficiency, and longer-term AI adoption/business transformation.
+
+SME/CLIENT CONTEXT
+- The solution should address a real business need, preferably from the participating SME's own operations.
+- SMEs may submit business problem statements for consideration.
+- SME problem statements may be curated and shared during the hackathon briefing; confirm the exact challenge-selection process at kickoff.
+- The prototype should be useful beyond the hackathon and feasible to adopt, adapt, or pilot.
+
+RELEVANT PROBLEM AREAS
+- Administrative automation and repetitive workflow handling.
+- Customer service, enquiry triage, and response drafting.
+- Sales, marketing, lead qualification, and lead management.
+- Supply chain, inventory, exception handling, and operations.
+- Internal knowledge management and information retrieval.
+- AI assistants that help SMEs operate more efficiently.
+
+SOLUTION QUALITY CRITERIA
+The official page expects solutions to be:
+- Practical and relevant to SME needs.
+- Feasible to deploy or pilot.
+- Secure and responsible by design.
+- Based on a sound technical architecture.
+- An effective use of agentic AI.
+- Able to demonstrate measurable business impact.
+
+No detailed judging rubric has been published yet. Use the criteria above as the working technical/client acceptance criteria.
+
+REFERENCE AGENT PATTERN
+Business request
+  -> Intake, classify, and extract information
+  -> Retrieve relevant company knowledge/context
+  -> Plan the next steps
+  -> Use approved tools or business systems
+  -> Validate the result
+  -> Require human approval for sensitive or high-impact actions
+  -> Execute the approved action
+  -> Log the action, outcome, and measurable impact
+
+The prototype should make the agent behaviour visible: multi-step planning, context/knowledge use, tool calls, decision points, exception handling, escalation, and an audit trail. Do not present only a generic chat interface without a meaningful business workflow behind it.
+
+PROTOTYPE FLOW TEMPLATES
+1. Administrative automation
+   Email/document intake -> field extraction -> validation -> missing/invalid data follow-up -> human approval -> spreadsheet/ERP update -> notification -> audit log.
+
+2. Customer service
+   Customer enquiry -> intent classification -> retrieve approved policy/product information -> draft response with supporting sources -> confidence check -> human escalation or approval -> response/ticket logging.
+
+3. Sales and marketing
+   Lead intake -> information extraction/enrichment -> qualification -> recommended next action -> human approval -> CRM/task update -> outcome tracking.
+
+4. Supply chain and operations
+   Order/inventory/operations input -> detect exception -> retrieve relevant rules -> recommend action -> approval gate -> update operational system -> record result.
+
+5. Knowledge management
+   Upload or connect approved documents -> index/tag content -> retrieve relevant passages -> answer with sources -> escalate low-confidence answers -> feedback and usage log.
+
+6. AI assistant
+   User task request -> understand intent -> plan a multi-step task -> call authorised tools -> validate outputs -> ask for approval where required -> complete task -> provide a traceable summary.
+
+For the demo, show three paths: a normal successful workflow, an incomplete/ambiguous input, and a safety or human-approval escalation.
+
+MEASURABLE IMPACT
+Define a baseline and compare it with the agent-assisted workflow. Useful measures include:
+- Processing time and turnaround time.
+- Number of manual steps or staff hours saved.
+- Accuracy, completeness, and error rate.
+- Response time and first-contact resolution for service workflows.
+- Automation rate, escalation rate, and human override rate.
+- Lead conversion, fulfilment, or operational exception outcomes where applicable.
+- Estimated operating cost or AI-token cost.
+
+TECHNICAL SUBMISSION EXPECTATIONS
+Deliverables may include:
+- Source code.
+- Technical and user documentation.
+- Working demonstration and presentation.
+- Technical architecture diagram.
+- Other materials requested by the organisers.
+
+All submitted deliverables must be made publicly available under an organiser-approved open-source licence, using a public repository designated or approved by the organisers.
+
+PREPARATION AND ORIGINALITY
+- The terms state that submissions must be original work created during the hackathon unless otherwise permitted.
+- Before the hackathon, prepare flows, mockups, architecture, synthetic fixtures, evaluation cases, and measurement plans.
+- Do not assume that pre-built production code or a completed prototype can be submitted; confirm reuse rules with the organisers.
+- Third-party libraries, datasets, models, and open-source components must have compatible licences and attribution.
+- Generative AI tools are allowed, but material use may need to be disclosed if requested.
+
+SECURITY, PRIVACY, AND RESPONSIBLE DESIGN
+- Do not expose confidential, proprietary, customer, personal, financial, or commercially sensitive information.
+- Use synthetic, anonymised, aggregated, or redacted data in prototypes, repositories, demos, and presentations.
+- Keep SME confidential information private and use it only for the hackathon solution unless written permission is provided.
+- Use approval gates for external, financial, customer-facing, or otherwise high-impact actions.
+- Include validation, low-confidence escalation, traceable logs, and clear failure behaviour.
+- Submissions must not contain malicious code, malware, harmful content, unlawful functionality, or unauthorised third-party material.
+- Teams are responsible for safe and efficient AI-token usage; excessive or abusive consumption may result in disqualification.
+
+INTELLECTUAL PROPERTY AND PUBLIC USE
+- Participants retain ownership of their solution and pre-existing intellectual property, subject to the licences granted in the terms.
+- NUS-ISS/AWS receive a worldwide, perpetual, royalty-free, non-exclusive licence to use submitted materials for hackathon, education, research, publicity, and showcase purposes.
+- The participating SME receives a non-exclusive licence to evaluate, test, and pilot the deliverables.
+- Commercial deployment, production implementation, exclusive use, or further commercial development requires a separate written agreement.
+- Ideas and solutions from the hackathon are intended as public resources and may be used, modified, and distributed under the applicable open-source licence.
+
+DELIVERY WINDOW
+- Registration closes: 26 August 2026, 5:00pm.
+- Kickoff: 5 September 2026.
+- Build phase: 7-25 September 2026.
+- Final submission: 28 September 2026.
+- Finale Demo Day: 10 October 2026.
+
+CONFIRM AT KICKOFF
+- The final SME problem statement or challenge-selection process.
+- Exact submission format, repository, and approved open-source licence.
+- Whether pre-hackathon code or components may be reused.
+- AWS services, token limits, and available cloud resources.
+- Final judging/evaluation criteria.
+- Data-handling, privacy, and demo expectations for the selected SME problem.

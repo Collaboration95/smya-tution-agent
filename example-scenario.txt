@@ -1,0 +1,235 @@
+SHOW ME YOUR AGENTS - EXAMPLE SCENARIOS
+Working notes from the tutor example
+
+PRIMARY IDEA: AI CO-TUTOR FOR A TUITION CENTRE
+
+Business context
+Open or operate a tuition centre where tutors are overloaded by repetitive work: diagnosing each student's weaknesses, preparing different practice materials, marking work, answering routine questions, and updating parents. The AI should reduce tutor workload and increase the number of students a tutor can support without removing the tutor from the loop.
+
+The product is an AI co-tutor, not an autonomous replacement for the teacher. It handles repetitive preparation, practice, feedback, and reporting while the human tutor makes teaching decisions and handles sensitive or complex cases.
+
+Client goals
+- Reduce tutor time spent on assessment preparation, marking, routine explanations, and progress reporting.
+- Give each student targeted practice instead of the same worksheet for everyone.
+- Help tutors identify which topics or sub-skills need attention.
+- Give students an accessible way to practise between lessons.
+- Give parents useful, regular, and understandable progress updates.
+- Produce measurable improvement in student mastery and tutor productivity.
+
+PRIMARY USERS
+
+Student
+- Completes diagnostic and personalised tests.
+- Requests explanations or extra practice.
+- Receives feedback at an age-appropriate level.
+
+Tutor
+- Reviews student profiles and topic-level weaknesses.
+- Approves or edits generated tests and explanations.
+- Sees alerts for low confidence, repeated failure, or unusual responses.
+- Uses summaries to plan the next lesson.
+
+Parent
+- Receives a concise progress update through an approved channel.
+- Sees topics covered, practice completed, improvement, and suggested next steps.
+- Does not receive raw private student conversations by default.
+
+Centre administrator
+- Manages classes, subjects, curriculum resources, enrolment, and communication permissions.
+- Tracks centre-level workload and outcomes.
+
+WHAT THE AI CO-TUTOR DOES
+
+1. Identify weak areas for each student
+
+The diagnostic/profile agent builds a topic and sub-skill mastery map from:
+- Baseline assessments.
+- Homework and test results.
+- Question-level mistakes and answer patterns.
+- Practice completion and response time.
+- Tutor corrections and observations.
+- Student requests for help.
+
+Each recommendation should include evidence and confidence, for example:
+"Fractions: likely weakness in comparing unlike denominators; confidence medium; based on 6 recent questions, 4 incorrect."
+
+The agent should distinguish between a genuine knowledge gap, a careless mistake, a misunderstood question, and insufficient evidence. It should recommend a follow-up question rather than permanently labelling a student as weak.
+
+Tutor output:
+- Topic-level mastery map.
+- Priority list for the next lesson.
+- Suggested remediation activity.
+- Class-level trend summary, without exposing unnecessary student data.
+
+2. Create personalised tests
+
+The assessment agent generates practice sets from tutor-approved curriculum content and a controlled question bank. It should:
+- Select questions based on the student's mastery map.
+- Adjust difficulty gradually.
+- Mix revision, remediation, and new material.
+- Avoid repeating questions unnecessarily.
+- Provide an answer key and explanation.
+- Tag each question by topic, sub-skill, difficulty, and learning objective.
+- Produce a version suitable for the student's age and level.
+
+The tutor should be able to review, edit, approve, or reject a generated test before it is assigned, especially for formal assessments.
+
+3. Make practice accessible through Telegram or another channel
+
+A Telegram bot could provide a lightweight student interface:
+- Start a practice session.
+- Receive one question at a time.
+- Submit an answer or ask for a hint.
+- Receive an explanation after answering or after tutor-defined limits.
+- Continue with easier, similar, or harder questions.
+- Ask for a summary of topics to practise.
+
+Possible commands or actions:
+- /practice - start a short adaptive practice session.
+- /quiz - take the week's assigned test.
+- /hint - receive a staged hint rather than the answer immediately.
+- /explain - request a simpler explanation.
+- /progress - see the student's own learning summary.
+
+The channel should be replaceable. The same backend could later support a web app, mobile app, or centre portal.
+
+4. Inform parents about progress
+
+The communication agent prepares a weekly or lesson-based parent update containing:
+- Topics covered.
+- Practice or attendance completion.
+- Improvements since the previous period.
+- Topics needing more practice.
+- Recommended home activity.
+- A simple confidence-aware explanation of progress.
+
+Parent messages should be drafts for tutor approval in the MVP. The system should verify that the parent account is linked to the correct student and should not send sensitive information to an unverified recipient.
+
+5. Support the tutor during and between lessons
+
+Additional co-tutor functions:
+- Prepare a lesson plan from the student's current weaknesses.
+- Generate differentiated worksheets for a class.
+- Mark objective questions and group common errors.
+- Suggest explanations, examples, and follow-up questions.
+- Answer routine curriculum questions using approved centre material.
+- Escalate questions outside the approved curriculum or with low confidence.
+- Create a short lesson summary and next-step recommendation.
+
+REFERENCE AGENT WORKFLOW
+
+Student answer or tutor request
+  -> Identify the student and context
+  -> Classify topic, intent, and difficulty
+  -> Retrieve approved curriculum/centre knowledge
+  -> Analyse the response or plan the next activity
+  -> Generate question, explanation, recommendation, or report
+  -> Validate against curriculum, age level, and safety rules
+  -> Request tutor approval where needed
+  -> Deliver through Telegram/web/dashboard
+  -> Store evidence, outcome, and updated mastery signal
+
+POSSIBLE AGENT COMPONENTS
+
+- Orchestrator agent: routes requests and coordinates the workflow.
+- Student profile agent: maintains topic-level mastery and learning history.
+- Diagnostic agent: analyses mistakes and proposes likely weak areas.
+- Assessment agent: creates and adapts tests from approved material.
+- Tutor assistant agent: prepares lessons, explanations, and class summaries.
+- Knowledge retrieval agent: answers only from approved curriculum and centre resources.
+- Communication agent: drafts parent and tutor updates.
+- Safety/quality checker: checks age-appropriateness, correctness, unsupported claims, and low-confidence cases.
+- Human approval layer: allows tutors to review tests, explanations, alerts, and parent messages.
+
+DATA AND TECHNICAL MODEL
+
+Core records:
+- Student profile and consent/guardian link.
+- Class, subject, level, and curriculum objectives.
+- Topic and sub-skill taxonomy.
+- Question bank with answer, explanation, difficulty, and source.
+- Assessment attempts and question-level results.
+- Mastery scores with evidence and confidence.
+- Tutor observations and approvals.
+- Parent communication history and delivery status.
+
+The system should retain the evidence behind recommendations so that a tutor can ask, "Why did the agent identify this weakness?" Avoid storing more personal data than necessary.
+
+MINIMUM VIABLE PROTOTYPE
+
+Keep the first prototype narrow:
+- One subject and one student level.
+- Three to five topics or sub-skills.
+- Synthetic data for several example students.
+- A small tutor-approved question bank or curriculum document.
+- Baseline diagnostic test.
+- Personalised weekly test generation.
+- Telegram-style student interaction, either through a real bot or a simulated interface.
+- Tutor dashboard or simple report showing weaknesses, evidence, and recommendations.
+- Draft parent progress message requiring tutor approval.
+- One normal case, one ambiguous/low-confidence case, and one escalation case.
+
+DEMO STORY
+
+Student A performs poorly on unlike-denominator fractions. The diagnostic agent identifies the likely sub-skill gap and shows the evidence. The assessment agent creates a short targeted test. Student A makes a second error, receives a staged hint, then answers correctly. The tutor sees the updated mastery signal and approves a follow-up activity. The communication agent drafts a parent update summarising progress without exposing raw chat data.
+
+Also demonstrate:
+- Student B receiving a harder test because the relevant topic is already strong.
+- A malformed or ambiguous question being escalated instead of answered confidently.
+- A tutor correcting an AI-generated question or parent message before delivery.
+
+SUCCESS METRICS
+
+- Tutor minutes saved per student per week.
+- Time required to create and mark a personalised test.
+- Agreement between the agent's diagnostic result and tutor assessment.
+- Student completion rate for assigned practice.
+- Improvement in topic-level assessment scores.
+- Time to produce parent reports.
+- Parent engagement with progress updates.
+- Rate of tutor overrides and low-confidence escalations.
+- Incorrect or unsupported AI responses found during evaluation.
+
+GUARDRAILS AND CLIENT REQUIREMENTS
+
+- The tutor remains accountable for teaching decisions and parent communication.
+- Use synthetic, anonymised, or redacted student data in the hackathon prototype.
+- Obtain appropriate guardian consent before linking student and parent accounts.
+- Do not expose student information in Telegram groups or to an unverified account.
+- Use approved curriculum sources and provide citations or source references where practical.
+- Validate generated questions and answers before release.
+- Include human approval for formal tests, sensitive messages, and uncertain recommendations.
+- Escalate safeguarding concerns, distress, repeated failure, or out-of-scope questions to a human.
+- Keep an audit trail of generated content, approvals, corrections, and messages sent.
+- Design the prototype so it can be open-sourced without exposing real student or centre information.
+
+OTHER SCENARIO SEEDS
+
+RETAIL / PROPERTY
+The phrase "retail property" needs clarification. Possible directions include:
+- Tenant or customer enquiry handling.
+- Maintenance request triage and vendor coordination.
+- Lease, property, or operating-document knowledge assistant.
+- Occupancy, sales, footfall, or inventory reporting.
+
+Potential pattern:
+Enquiry or incident -> classify -> retrieve lease/SOP/property context -> create recommendation or work order -> request manager approval -> update the relevant system -> notify the requester -> log the outcome.
+
+SOFTWARE DEVELOPMENT SHOP
+The note says "replacing an entire house," which may mean replacing an entire software house/team. That is too broad for an initial prototype. Narrow it to one measurable workflow, such as:
+- Requirements intake -> clarification -> user stories and acceptance criteria.
+- Codebase question -> repository retrieval -> grounded answer with file references.
+- Bug report -> reproduce/triage -> suggested fix -> test generation -> developer approval.
+- Pull request -> review checklist -> test/risk summary -> human decision.
+- Support ticket -> classification -> knowledge retrieval -> draft response -> escalation.
+
+The same agent pattern applies: understand the request, retrieve project context, plan, use controlled tools, validate, require developer approval for changes, and record the result.
+
+NEXT DECISIONS FOR THE TUITION MVP
+
+- Choose one subject and student level.
+- Obtain or create a small approved curriculum/question set.
+- Decide whether Telegram is a real integration or a simulated demo channel.
+- Define the tutor approval points.
+- Define the baseline workload and one or two measurable success targets.
+- Decide what the first agent should own: diagnosis, test generation, or parent reporting.
