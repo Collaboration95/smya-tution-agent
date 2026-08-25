@@ -24,6 +24,7 @@ node_modules/
 frontend/node_modules/
 frontend/.next/
 frontend/out/
+frontend/next-env.d.ts
 .next/
 dist/
 build/
