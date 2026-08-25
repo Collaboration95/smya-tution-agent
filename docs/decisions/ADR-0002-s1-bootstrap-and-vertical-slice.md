@@ -39,6 +39,7 @@ S1-01 is the smallest runnable boundary that the five later issues can extend wi
 - `CallerContext` is derived server-side from the authenticated principal (seeded demo users in S1). No client-provided centre_id or role is trusted.
 - Roles: `admin | tutor | student | guardian | worker`. Worker is the job runner's server-scoped principal.
 - Typed tools: each tool has a Pydantic `Request`/`Response` and is invoked through `backend/app/tools/registry.py` with explicit allow-lists per job type. The registry checks `CallerContext` scope, `centre_id` ownership, approved-source filters, and approval state before any read/write. Tools never expose arbitrary SQL, shell, or messaging.
+- Approval gate: assessment jobs require an explicit `approval_status=approved` (or equivalent `status=approved`) input. Draft or missing approval is rejected at the service/API boundary; the diagnostic allow-list has no assessment-draft write tool.
 - Approved-source filtering: `retrieve_approved_curriculum` and `find_question_candidates` filter by `source_id ∈ {approved}` and `approval_status=approved` plus `centre_id`. Prompt-injection style inputs cannot bypass this — verified by denial tests.
 - Audit: every tool invocation and every approval/reject writes an `audit_events` row with actor, event, entity, timestamp, before/after.
 
@@ -53,6 +54,7 @@ S1-01 is the smallest runnable boundary that the five later issues can extend wi
 
 - Trigger is a completed attempt batch (or manual request) that creates/deduplicates a `diagnostic` job.
 - The worker reads bounded evidence (eligible attempts for the student/subskill), loads sub-skill definitions, optionally retrieves approved curriculum, calls `ModelClient` through the typed tool boundary, validates `MasteryProposal` (label/confidence must match deterministic state/policy_version), persists the proposal version with evidence IDs, and creates a `tutor_alert` for low/conflicting evidence.
+- The S1 diagnostic bound is the four explicitly named data tools (`get_student_snapshot`, `get_attempt_evidence`, `get_mastery_state`, `retrieve_approved_curriculum`) plus one model call, with at most one repair call. The issue discussion's separate “≤3 tool calls” phrase is inconsistent with that explicit list and should be clarified before changing the implementation.
 - Low-evidence (`eligible < 3`) and conflicting evidence produce `needs_tutor_review` rather than an invented answer. Retry does not duplicate the proposal.
 
 ### S1-06 — Tutor trace
