@@ -11,6 +11,9 @@ app = FastAPI(title=settings.app_name, version=settings.app_version, description
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origin_list, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 app.include_router(health_router)
+from backend.app.api.routes.students import router as students_router  # noqa: E402
+
+app.include_router(students_router)
 
 # Later S1 routers will be included here:
 # app.include_router(diagnostic_router, prefix="/api")
