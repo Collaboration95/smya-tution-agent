@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
+import { apiUrl } from "../../lib/api";
 export default function HealthPage() {
   const [data, setData] = useState<any>(null);
   const [err, setErr] = useState<string | null>(null);
-  useEffect(() => { fetch("http://localhost:8000/health").then(r=>r.json()).then(setData).catch(e=>setErr(String(e))); }, []);
+  useEffect(() => { fetch(apiUrl("/health")).then(r=>r.json()).then(setData).catch(e=>setErr(String(e))); }, []);
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Frontend → Backend health</h1>

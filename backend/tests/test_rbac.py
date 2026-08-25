@@ -5,7 +5,6 @@ from fastapi.testclient import TestClient
 from backend.app.db.base import Base
 from backend.app.services.seed import seed_db
 from backend.app.main import app
-from backend.app.db.models import GuardianLink
 
 def make_seeded_client():
     engine = create_engine("sqlite+pysqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
@@ -61,7 +60,7 @@ def test_cross_centre_denied():
 def test_unverified_guardian_blocked():
     client, Session, engine = make_seeded_client()
     # GRD-SYNTH-B-PENDING is unverified, consent false
-    r = client.get("/api/students/STU-SYNTH-B", headers={"X-User-Id": "GRD-SYNTH-B-PENDING"})
+    client.get("/api/students/STU-SYNTH-B", headers={"X-User-Id": "GRD-SYNTH-B-PENDING"})
     # Our /api/students does not allow guardian to read via that endpoint, but we test guardian access via permission function
     # Direct permission check: use tool endpoint that checks guardian
     from backend.app.auth.permissions import can_access_guardian_report

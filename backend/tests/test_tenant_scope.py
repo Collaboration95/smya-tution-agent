@@ -30,7 +30,7 @@ def test_centre_scope_isolation():
 
 def test_every_centre_owned_record_has_centre_scope():
     # Only centres are top-level; all others we check via model registry
-    from backend.app.db.models import Class, Enrolment
+    from backend.app.db.models import Class
     # Class has centre_id, Enrolment is indirect via class but still scoped via class join
     # S1-02 acceptance: every centre-owned record carries centre scope — we enforce via Class.centre_id and Student.centre_id
     assert hasattr(Class, "centre_id")

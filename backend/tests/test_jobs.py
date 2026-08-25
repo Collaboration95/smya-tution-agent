@@ -1,10 +1,10 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from datetime import datetime, timedelta, timezone
 from backend.app.db.base import Base
 from backend.app.services.jobs import create_job, claim_job, start_run, record_tool_call, complete_job_with_artifact, fail_run, heartbeat, get_job
 from backend.app.services.seed import seed_db
-from backend.app.models.client import FakeModelClient
 from pydantic import BaseModel
 
 class ProposalSchema(BaseModel):
@@ -35,7 +35,7 @@ def test_idempotency_and_dedup():
 def test_claim_and_heartbeat_and_recovery():
     Session = make_db()
     with Session() as db:
-        j = create_job(db, "diagnostic", "CTR-SYNTH-NORTHSTAR", "STU-SYNTH-A", {"x": 1})
+        create_job(db, "diagnostic", "CTR-SYNTH-NORTHSTAR", "STU-SYNTH-A", {"student_id": "STU-SYNTH-A", "subskill_id": "FRC-ADD-SUB-UNLIKE", "x": 1})
         db.commit()
         claimed = claim_job(db, "worker-1")
         assert claimed is not None and claimed.status == "claimed"
@@ -43,10 +43,8 @@ def test_claim_and_heartbeat_and_recovery():
         ok = heartbeat(db, claimed.id, "worker-1")
         assert ok is True
         # Stale recovery: manipulate heartbeat to old
-        import datetime
-        from datetime import timezone, timedelta
         job = get_job(db, claimed.id)
-        job.heartbeat_at = datetime.datetime.now(timezone.utc) - timedelta(seconds=120)
+        job.heartbeat_at = datetime.now(timezone.utc) - timedelta(seconds=120)
         job.status = "claimed"
         db.commit()
         # Next claim should recover stale
@@ -56,10 +54,27 @@ def test_claim_and_heartbeat_and_recovery():
         # retry_count should have increased
         assert get_job(db, job.id).retry_count == 1
 
+
+def test_running_run_is_closed_when_heartbeat_recovery_requeues_job():
+    Session = make_db()
+    with Session() as db:
+        job = create_job(db, "diagnostic", "CTR-SYNTH-NORTHSTAR", "STU-SYNTH-A", {"student_id": "STU-SYNTH-A", "subskill_id": "FRC-ADD-SUB-UNLIKE", "x": 2})
+        db.commit()
+        claimed = claim_job(db, "worker-1")
+        run = start_run(db, claimed, "fake", "fake-diagnostic-v1", worker_id="worker-1")
+        run.heartbeat_at = None
+        job = get_job(db, job.id)
+        job.heartbeat_at = datetime.now(timezone.utc) - timedelta(seconds=120)
+        db.commit()
+        claimed_again = claim_job(db, "worker-2")
+        assert claimed_again is not None and claimed_again.status == "claimed"
+        assert get_job(db, job.id).retry_count == 1
+        assert db.query(type(run)).filter_by(id=run.id).first().status == "failed_retryable"
+
 def test_retryable_and_terminal_failures():
     Session = make_db()
     with Session() as db:
-        j = create_job(db, "diagnostic", "CTR-SYNTH-NORTHSTAR", "STU-SYNTH-A", {"y": 2}, max_retries=1)
+        j = create_job(db, "diagnostic", "CTR-SYNTH-NORTHSTAR", "STU-SYNTH-A", {"student_id": "STU-SYNTH-A", "subskill_id": "FRC-ADD-SUB-UNLIKE", "y": 2}, max_retries=1)
         db.commit()
         c = claim_job(db, "worker-1")
         run = start_run(db, c, "fake", "fake-diagnostic-v1")
@@ -78,7 +93,7 @@ def test_retryable_and_terminal_failures():
 def test_artifact_reconciliation_no_duplicates_after_crash():
     Session = make_db()
     with Session() as db:
-        j = create_job(db, "diagnostic", "CTR-SYNTH-NORTHSTAR", "STU-SYNTH-A", {"z": 3})
+        j = create_job(db, "diagnostic", "CTR-SYNTH-NORTHSTAR", "STU-SYNTH-A", {"student_id": "STU-SYNTH-A", "subskill_id": "FRC-ADD-SUB-UNLIKE", "z": 3})
         db.commit()
         c = claim_job(db, "worker-1")
         run = start_run(db, c, "fake", "fake-diagnostic-v1")
@@ -86,14 +101,13 @@ def test_artifact_reconciliation_no_duplicates_after_crash():
         art1 = complete_job_with_artifact(db, run, "mastery_proposal", payload)
         db.commit()
         assert get_job(db, j.id).status == "succeeded"
-        # Simulate crash before status persisted? retry would try to complete again with same payload -> should not duplicate
-        # Create a second run for same job (as if retried)
-        # But job is succeeded, so we test reconciliation directly: calling complete again with same payload on new run should reuse artifact
-        # For test, manually set job back to running and create new run
+        # Simulate a retry after a worker crash: a recovered job is claimed again
+        # before the replacement run starts.
         job = get_job(db, j.id)
-        job.status = "running"
+        job.status = "queued"
         db.commit()
-        run2 = start_run(db, job, "fake", "fake-diagnostic-v1")
+        claimed_again = claim_job(db, "worker-2")
+        run2 = start_run(db, claimed_again, "fake", "fake-diagnostic-v1", worker_id="worker-2")
         art2 = complete_job_with_artifact(db, run2, "mastery_proposal", payload)
         db.commit()
         assert art1.id == art2.id  # reused
@@ -110,7 +124,7 @@ def test_fake_model_validation_becomes_safe_failure():
         out = fake.generate_structured("prompt with no fixture", ProposalSchema)
         assert out.parsed is None
         # Simulate job that tries to use invalid output -> should become failed_retryable then terminal
-        j = create_job(db, "diagnostic", "CTR-SYNTH-NORTHSTAR", "STU-SYNTH-A", {"w": 4}, max_retries=0)
+        j = create_job(db, "diagnostic", "CTR-SYNTH-NORTHSTAR", "STU-SYNTH-A", {"student_id": "STU-SYNTH-A", "subskill_id": "FRC-ADD-SUB-UNLIKE", "w": 4}, max_retries=0)
         db.commit()
         c = claim_job(db, "worker-1")
         run = start_run(db, c, fake.provider, fake.model_id)
@@ -132,7 +146,7 @@ def test_bounded_tool_allow_list():
     # Ensure tool_calls are recorded
     Session = make_db()
     with Session() as db:
-        j = create_job(db, "diagnostic", "CTR-SYNTH-NORTHSTAR", "STU-SYNTH-A", {"q": 5})
+        create_job(db, "diagnostic", "CTR-SYNTH-NORTHSTAR", "STU-SYNTH-A", {"student_id": "STU-SYNTH-A", "subskill_id": "FRC-ADD-SUB-UNLIKE", "q": 5})
         db.commit()
         c = claim_job(db, "worker-1")
         run = start_run(db, c, "fake", "fake-diagnostic-v1")

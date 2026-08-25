@@ -1,10 +1,11 @@
 import json
+import pytest
 from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from backend.app.db.base import Base
 from backend.app.db.models import Centre, User, Student, Question, Attempt, MasteryEvidence
-from backend.app.services.mastery import compute_mastery, upsert_mastery_state, get_history, normalise_answer
+from backend.app.services.mastery import compute_mastery, upsert_mastery_state, get_history
 
 POLICY = json.loads((Path(__file__).parents[2] / "domain/mastery_policy/mastery_policy_v1.json").read_text())
 
@@ -75,9 +76,18 @@ def test_attempt_immutability_and_append_only():
         att = Attempt(id="ATT1", student_id="STU-1", question_id="Q1", submitted_answer="2/4", grading_status="graded", is_correct=True)
         db.add(att)
         db.commit()
+        att.submitted_answer = "wrong"
+        with pytest.raises(ValueError, match="immutable"):
+            db.commit()
+        db.rollback()
         # Attempt should not be updatable via normal service — we verify that evidence is append-only by checking unique constraint on attempt_id
-        db.add(MasteryEvidence(id="EV1", attempt_id="ATT1", student_id="STU-1", subskill_id="FRC-EQUIVALENCE", is_correct=True, policy_id="mastery_policy_v1", policy_version="1.0.0"))
+        evidence = MasteryEvidence(id="EV1", attempt_id="ATT1", student_id="STU-1", subskill_id="FRC-EQUIVALENCE", is_correct=True, policy_id="mastery_policy_v1", policy_version="1.0.0")
+        db.add(evidence)
         db.commit()
+        evidence.is_correct = False
+        with pytest.raises(ValueError, match="append-only"):
+            db.commit()
+        db.rollback()
         from sqlalchemy.exc import IntegrityError
         try:
             db.add(MasteryEvidence(id="EV1-DUP", attempt_id="ATT1", student_id="STU-1", subskill_id="FRC-EQUIVALENCE", is_correct=True, policy_id="mastery_policy_v1", policy_version="1.0.0"))
@@ -108,9 +118,9 @@ def test_tutor_override_takes_precedence():
         from backend.app.db.models import MasteryState, TutorCorrection
         import uuid
         latest = db.query(MasteryState).filter_by(student_id="STU-1", subskill_id="FRC-ADD-SUB-UNLIKE").order_by(MasteryState.version.desc()).first()
-        override = MasteryState(id=f"mst-override-{uuid.uuid4().hex[:6]}", student_id="STU-1", subskill_id="FRC-ADD-SUB-UNLIKE", version=latest.version+1, eligible_attempts=latest.eligible_attempts, correct_attempts=latest.correct_attempts, accuracy=latest.accuracy, confidence=latest.confidence, label="developing", policy_id=latest.policy_id, policy_version=latest.policy_version, is_override=True)
+        override = MasteryState(id=f"mst-override-{uuid.uuid4().hex[:6]}", centre_id="CTR-1", student_id="STU-1", subskill_id="FRC-ADD-SUB-UNLIKE", version=latest.version+1, eligible_attempts=latest.eligible_attempts, correct_attempts=latest.correct_attempts, accuracy=latest.accuracy, confidence=latest.confidence, label="developing", policy_id=latest.policy_id, policy_version=latest.policy_version, is_override=True)
         db.add(override)
-        db.add(TutorCorrection(id=f"corr-{uuid.uuid4().hex[:6]}", student_id="STU-1", subskill_id="FRC-ADD-SUB-UNLIKE", author_tutor_id="TUT-1", original_state_id=latest.id, corrected_label="developing", reason="re-evaluated", supersedes_version=latest.version))
+        db.add(TutorCorrection(id=f"corr-{uuid.uuid4().hex[:6]}", centre_id="CTR-1", student_id="STU-1", subskill_id="FRC-ADD-SUB-UNLIKE", author_tutor_id="TUT-1", original_state_id=latest.id, corrected_label="developing", reason="re-evaluated", supersedes_version=latest.version))
         db.commit()
         from backend.app.services.mastery import get_effective_mastery
         eff = get_effective_mastery(db, "STU-1", "FRC-ADD-SUB-UNLIKE")

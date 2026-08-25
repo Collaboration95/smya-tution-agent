@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from backend.app.db.session import get_db
 from backend.app.auth.deps import get_caller_context
 from backend.app.auth.context import CallerContext
-from backend.app.auth.permissions import PermissionDenied, require_read_student
+from backend.app.auth.permissions import PermissionDenied
 from backend.app.db.models import Student
 from backend.app.tools.registry import get_student_snapshot
 from backend.app.tools.contracts import GetStudentSnapshotRequest

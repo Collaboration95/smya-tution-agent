@@ -11,7 +11,6 @@ def get_caller_context(x_user_id: str = Header(..., alias="X-User-Id"), db: Sess
     user = db.query(User).filter(User.id == x_user_id).first()
     if user:
         student_id = None
-        guardian_link_id = None
         if user.role == "student":
             # Student users are USER-{student_id}
             # Extract student_id from display or via lookup; we store student_id as USER-STU-... but simpler: if id starts with USER-, strip

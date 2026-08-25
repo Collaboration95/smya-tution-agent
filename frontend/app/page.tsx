@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { apiUrl } from "../lib/api";
 
 type Health = { status: string; version: string; env: string; db: string; model_provider: string; model_id: string };
 
@@ -7,7 +8,7 @@ export default function Home() {
   const [health, setHealth] = useState<Health | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    fetch("http://localhost:8000/health").then(r => r.json()).then(setHealth).catch(e => setError(String(e)));
+    fetch(apiUrl("/health")).then(r => r.json()).then(setHealth).catch(e => setError(String(e)));
   }, []);
   return (
     <div className="space-y-6">
@@ -21,13 +22,13 @@ export default function Home() {
         {health ? (
           <pre className="text-sm bg-gray-50 p-3 rounded overflow-auto">{JSON.stringify(health, null, 2)}</pre>
         ) : error ? (
-          <p className="text-sm text-red-600">API not reachable at localhost:8000 — {error} (run `uvicorn backend.app.main:app --reload`)</p>
+          <p className="text-sm text-red-600">API is not reachable — {error} (run `uvicorn backend.app.main:app --reload`)</p>
         ) : (
-          <p className="text-sm text-gray-500">Checking http://localhost:8000/health …</p>
+          <p className="text-sm text-gray-500">Checking backend health …</p>
         )}
         <div className="mt-3 flex gap-3 text-sm">
-          <a href="http://localhost:8000/docs" className="text-blue-600 hover:underline">API docs</a>
-          <a href="http://localhost:8000/health" className="text-blue-600 hover:underline">/health JSON</a>
+          <a href={apiUrl("/docs")} className="text-blue-600 hover:underline">API docs</a>
+          <a href={apiUrl("/health")} className="text-blue-600 hover:underline">/health JSON</a>
           <a href="/health" className="text-blue-600 hover:underline">Frontend /health page</a>
         </div>
       </section>

@@ -23,6 +23,9 @@ DATABASE_URL=postgresql+psycopg2://smya:smya@localhost:5432/smya uvicorn backend
 # synthetic seed check
 python3 backend/scripts/seed.py
 
+# bounded worker (after creating a diagnostic job)
+python3 backend/scripts/worker.py --once
+
 # tests
 pytest backend/tests -v
 pytest -q  # includes S0 fixture tests
@@ -31,6 +34,9 @@ python3 -m unittest discover -s tests -v
 # frontend
 cd frontend && npm install && npm run dev   # http://localhost:3000
 npm run build
+
+# optional frontend-to-API override (defaults to http://localhost:8000)
+# NEXT_PUBLIC_API_BASE=http://localhost:8000 npm run dev
 ```
 
 ## S1 issues

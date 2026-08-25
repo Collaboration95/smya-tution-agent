@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import datetime, timezone
-from sqlalchemy import String, Boolean, Integer, Float, Text, DateTime, ForeignKey, UniqueConstraint, Index, CheckConstraint
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import String, Boolean, Integer, Float, Text, DateTime, ForeignKey, UniqueConstraint, Index, event
+from sqlalchemy.orm import Mapped, mapped_column
 from backend.app.db.base import Base
 
 def utcnow():
@@ -48,6 +48,7 @@ class Class(Base):
 class Enrolment(Base):
     __tablename__ = "enrolments"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    centre_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=True, index=True)
     class_id: Mapped[str] = mapped_column(String(64), ForeignKey("classes.id", ondelete="CASCADE"), nullable=False, index=True)
     student_id: Mapped[str] = mapped_column(String(64), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
@@ -56,6 +57,7 @@ class Enrolment(Base):
 class GuardianLink(Base):
     __tablename__ = "guardian_links"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    centre_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=True, index=True)
     student_id: Mapped[str] = mapped_column(String(64), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     verification_status: Mapped[str] = mapped_column(String(32), nullable=False)  # verified|pending|blocked
@@ -66,6 +68,8 @@ class GuardianLink(Base):
 class CurriculumChunk(Base):
     __tablename__ = "curriculum_chunks"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    # NULL means a globally approved synthetic source; centre-owned material must set this.
+    centre_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=True, index=True)
     source_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     subskill_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     approval_status: Mapped[str] = mapped_column(String(32), nullable=False)  # approved|pending|rejected
@@ -75,6 +79,8 @@ class CurriculumChunk(Base):
 class Question(Base):
     __tablename__ = "questions"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    # NULL means a globally approved synthetic source; centre-owned questions must set this.
+    centre_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=True, index=True)
     source_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     subskill_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     template_id: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -89,6 +95,7 @@ class Question(Base):
 class Attempt(Base):
     __tablename__ = "attempts"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    centre_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=True, index=True)
     student_id: Mapped[str] = mapped_column(String(64), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
     question_id: Mapped[str] = mapped_column(String(64), ForeignKey("questions.id", ondelete="RESTRICT"), nullable=False, index=True)
     submitted_answer: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -100,6 +107,7 @@ class Attempt(Base):
 class MasteryEvidence(Base):
     __tablename__ = "mastery_evidence"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    centre_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=True, index=True)
     attempt_id: Mapped[str] = mapped_column(String(64), ForeignKey("attempts.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
     student_id: Mapped[str] = mapped_column(String(64), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
     subskill_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
@@ -112,6 +120,7 @@ class MasteryEvidence(Base):
 class MasteryState(Base):
     __tablename__ = "mastery_states"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    centre_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=True, index=True)
     student_id: Mapped[str] = mapped_column(String(64), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
     subskill_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -132,6 +141,7 @@ class MasteryState(Base):
 class TutorCorrection(Base):
     __tablename__ = "tutor_corrections"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    centre_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=True, index=True)
     student_id: Mapped[str] = mapped_column(String(64), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
     subskill_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     author_tutor_id: Mapped[str] = mapped_column(String(64), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
@@ -214,6 +224,22 @@ class TutorAlert(Base):
     message: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
+
+class TutorDecision(Base):
+    __tablename__ = "tutor_decisions"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    job_id: Mapped[str] = mapped_column(String(64), ForeignKey("agent_jobs.id", ondelete="CASCADE"), nullable=False, index=True)
+    artifact_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("artifacts.id", ondelete="SET NULL"), nullable=True)
+    centre_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=True, index=True)
+    student_id: Mapped[str] = mapped_column(String(64), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    actor_id: Mapped[str] = mapped_column(String(64), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    actor_role: Mapped[str] = mapped_column(String(32), nullable=False)
+    action: Mapped[str] = mapped_column(String(32), nullable=False)  # accept|edit|reject|more_evidence
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    corrected_label: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    __table_args__ = (Index("ix_tutor_decisions_job_created", "job_id", "created_at"),)
+
 class Artifact(Base):
     __tablename__ = "artifacts"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -224,3 +250,23 @@ class Artifact(Base):
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     __table_args__ = (UniqueConstraint("job_id", "version", name="uq_artifact_job_version"),)
+
+
+@event.listens_for(Attempt, "before_update")
+def _reject_attempt_update(mapper, connection, target):
+    raise ValueError("attempts are immutable factual inputs")
+
+
+@event.listens_for(Attempt, "before_delete")
+def _reject_attempt_delete(mapper, connection, target):
+    raise ValueError("attempts are immutable factual inputs")
+
+
+@event.listens_for(MasteryEvidence, "before_update")
+def _reject_evidence_update(mapper, connection, target):
+    raise ValueError("mastery evidence is append-only")
+
+
+@event.listens_for(MasteryEvidence, "before_delete")
+def _reject_evidence_delete(mapper, connection, target):
+    raise ValueError("mastery evidence is append-only")

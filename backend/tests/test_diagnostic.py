@@ -6,7 +6,7 @@ from backend.app.services.seed import seed_db
 from backend.app.services.jobs import create_job, get_job, claim_job
 from backend.app.agents.diagnostic import run_diagnostic
 from backend.app.models.client import FakeModelClient
-from backend.app.db.models import Artifact, TutorAlert, AgentJob
+from backend.app.db.models import Artifact, TutorAlert
 import json
 
 def make_db():
@@ -28,7 +28,7 @@ def fake_for(student_id, subskill_id, label, confidence, evidence_ids, policy_ve
             "evidence_ids": evidence_ids,
             "policy_id": "mastery_policy_v1",
             "policy_version": policy_version,
-            "reason": f"Evidence {evidence_ids} shows {label} with confidence {confidence}",
+            "reason": f"Evidence {evidence_ids} shows {label} with confidence {confidence}; policy version {policy_version} was applied.",
             "alternative_explanation": "Two responses were incomplete" if label=="requires_support" else None,
             "recommended_next_action": "assign_targeted_practice" if label!="insufficient_evidence" else "collect_more_evidence",
             "source_refs": ["CHK-SYNTH-ADD-001"]
@@ -46,6 +46,32 @@ def test_completed_attempt_creates_durable_job():
         # Dedup
         j2 = create_job(db, "diagnostic", "CTR-SYNTH-NORTHSTAR", "STU-SYNTH-A", payload)
         assert j.id == j2.id
+        event_job = create_job(
+            db,
+            "diagnostic",
+            "CTR-SYNTH-NORTHSTAR",
+            "STU-SYNTH-A",
+            {**payload, "attempt_id": "ATT-SYNTH-A-ADD-001", "trigger": "attempt_completed"},
+        )
+        assert event_job.id == j.id
+
+
+def test_default_fake_provider_creates_reviewable_artifact():
+    Session = make_db()
+    with Session() as db:
+        job = create_job(
+            db,
+            "diagnostic",
+            "CTR-SYNTH-NORTHSTAR",
+            "STU-SYNTH-A",
+            {"student_id": "STU-SYNTH-A", "subskill_id": "FRC-ADD-SUB-UNLIKE"},
+        )
+        db.commit()
+        claim_job(db, "worker-default")
+        result = run_diagnostic(db, get_job(db, job.id), FakeModelClient())
+        assert result["status"] == "needs_tutor_review"
+        assert result["artifact_id"]
+        assert db.query(Artifact).filter(Artifact.job_id == job.id).count() == 1
 
 def test_worker_records_provenance_and_artifact():
     Session = make_db()
@@ -60,7 +86,6 @@ def test_worker_records_provenance_and_artifact():
         db.commit()
         # Need to get fresh job (claimed)
         job = get_job(db, job.id)
-        evidence_ids = [e.id for e in db.query(Artifact).all()]  # just to get list before
         # Get deterministic state for fixture: STU-A ADD -> requires_support, confidence 0.8
         from backend.app.db.models import MasteryState
         ms = db.query(MasteryState).filter_by(student_id="STU-SYNTH-A", subskill_id="FRC-ADD-SUB-UNLIKE").first()
@@ -92,7 +117,7 @@ def test_proposal_rationale_references_evidence_and_policy():
         payload = {"student_id": "STU-SYNTH-B", "subskill_id": "FRC-ADD-SUB-UNLIKE"}
         job = create_job(db, "diagnostic", "CTR-SYNTH-NORTHSTAR", "STU-SYNTH-B", payload)
         db.commit()
-        c = claim_job(db, "worker-1")
+        claim_job(db, "worker-1")
         job = get_job(db, job.id)
         from backend.app.db.models import MasteryEvidence, MasteryState
         ms = db.query(MasteryState).filter_by(student_id="STU-SYNTH-B", subskill_id="FRC-ADD-SUB-UNLIKE").first()
@@ -164,12 +189,10 @@ def test_replay_does_not_duplicate_proposal_artifact():
         r1 = run_diagnostic(db, job, fake)
         art_id1 = r1["artifact_id"]
         # Simulate retry: reset job to queued and run again with same fake (should dedup if same payload)
-        from backend.app.db.models import AgentJob
         job2 = get_job(db, job.id)
         # Manually set back to running for replay test via complete_job reconciliation
         job2.status = "running"
         db.commit()
-        from backend.app.services.jobs import start_run, complete_job_with_artifact
         # Directly test artifact reconciliation: second complete with same payload should reuse
         # We instead run diagnostic again on a new job with same idempotency (dedup returns same job)
         # So test that creating duplicate job returns same id and artifact not duplicated

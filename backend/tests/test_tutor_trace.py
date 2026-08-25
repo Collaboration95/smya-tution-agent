@@ -37,7 +37,7 @@ def fake_for(ev_ids, label="requires_support", confidence=0.8):
         "evidence_ids": ev_ids,
         "policy_id": "mastery_policy_v1",
         "policy_version": "1.0.0",
-        "reason": "evidence shows label",
+        "reason": f"Evidence {ev_ids} supports {label}; policy version 1.0.0 was applied.",
         "alternative_explanation": None,
         "recommended_next_action": "assign_targeted_practice",
         "source_refs": []

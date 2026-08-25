@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -31,7 +30,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: sh -c "alembic -c backend/alembic.ini upgrade head && uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 volumes:
   smya_pgdata:

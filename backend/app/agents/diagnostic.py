@@ -1,187 +1,283 @@
 from __future__ import annotations
+
 import json
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy.orm import Session
-from backend.app.db.models import AgentJob, AgentRun, Artifact, TutorAlert
-from backend.app.services.jobs import start_run, record_tool_call, complete_job_with_artifact, fail_run, mark_needs_review
-from backend.app.services.mastery import get_eligible_attempts, compute_mastery, load_policy
-from backend.app.db.models import MasteryEvidence, MasteryState, Student, Question, Attempt
-from backend.app.tools.registry import get_student_snapshot, get_attempt_evidence, get_mastery_state
-from backend.app.tools.contracts import GetStudentSnapshotRequest, GetAttemptEvidenceRequest, GetMasteryStateRequest, RetrieveCurriculumRequest
-from backend.app.tools.curriculum import retrieve_approved_curriculum
-from backend.app.models.client import ModelClient, FakeModelClient
-from backend.app.schemas.proposal import MasteryProposal
-from backend.app.auth.context import CallerContext
 
-def _worker_context(student_id: str, subskill_id: str) -> CallerContext:
-    # Worker acts as server principal; use centre derived from student
-    # This will be resolved via DB in actual run_diagnostic; placeholder
-    return CallerContext(user_id="worker-diagnostic", centre_id="CTR-SYNTH-NORTHSTAR", role="worker")
+from pydantic import ValidationError
+from sqlalchemy.orm import Session
+
+from backend.app.auth.context import CallerContext
+from backend.app.db.models import AgentJob, AgentRun, MasteryState, Student, TutorAlert
+from backend.app.models.client import ModelClient
+from backend.app.schemas.proposal import MasteryProposal
+from backend.app.services.jobs import (
+    complete_job_with_artifact,
+    fail_run,
+    mark_needs_review,
+    record_tool_call,
+    start_run,
+)
+from backend.app.services.mastery import compute_mastery, load_policy, upsert_mastery_state
+from backend.app.tools.contracts import (
+    GetAttemptEvidenceRequest,
+    GetMasteryStateRequest,
+    GetStudentSnapshotRequest,
+    RetrieveCurriculumRequest,
+)
+from backend.app.tools.registry import invoke_tool
+
+
+def _worker_context(job: AgentJob, student: Student) -> CallerContext:
+    worker_id = job.claimed_by or f"worker-diagnostic:{job.id}"
+    return CallerContext(
+        user_id=worker_id,
+        centre_id=student.centre_id,
+        role="worker",
+        student_id=student.id,
+        job_id=job.id,
+    )
+
+
+def _record_invocation(run: AgentRun, invocation) -> None:
+    if invocation.input_tokens is not None:
+        run.input_tokens = (run.input_tokens or 0) + invocation.input_tokens
+    if invocation.output_tokens is not None:
+        run.output_tokens = (run.output_tokens or 0) + invocation.output_tokens
+    if invocation.cost_usd is not None:
+        run.cost_usd = (run.cost_usd or 0.0) + invocation.cost_usd
+
+
+def _alert_once(
+    db: Session,
+    job: AgentJob,
+    student: Student,
+    subskill_id: str,
+    alert_type: str,
+    message: str,
+) -> None:
+    existing = db.query(TutorAlert).filter(TutorAlert.job_id == job.id, TutorAlert.type == alert_type).first()
+    if existing:
+        return
+    db.add(
+        TutorAlert(
+            id=f"alert-{uuid.uuid4().hex[:8]}",
+            centre_id=student.centre_id,
+            student_id=student.id,
+            subskill_id=subskill_id,
+            job_id=job.id,
+            type=alert_type,
+            message=message,
+            created_at=datetime.now(timezone.utc),
+        )
+    )
+
+
+def _review(db: Session, run: AgentRun, code: str, message: str, **details) -> dict:
+    mark_needs_review(db, run, {"code": code, "message": message, **details})
+    db.commit()
+    return {"status": "needs_tutor_review", "reason": code}
+
 
 def run_diagnostic(db: Session, job: AgentJob, model_client: ModelClient) -> dict:
-    """
-    Bounded diagnostic run. Returns result dict with artifact or error.
-    Uses typed tools, validates structured output against deterministic state, and is idempotent.
-    """
+    """Run one claimed diagnostic job with bounded, typed tool access."""
+    if job.job_type != "diagnostic":
+        raise ValueError(f"unsupported diagnostic job type: {job.job_type}")
+    if job.status != "claimed":
+        raise ValueError(f"diagnostic job must be claimed before running: {job.status}")
+
     payload = json.loads(job.input_json)
     student_id = payload.get("student_id")
     subskill_id = payload.get("subskill_id")
     if not student_id or not subskill_id:
         raise ValueError("job input must contain student_id and subskill_id")
-
-    # Derive worker caller context from student's centre
-    student = db.query(Student).filter(Student.id == student_id).first()
+    if job.student_id != student_id:
+        raise ValueError("job student_id does not match diagnostic input")
+    student = db.query(Student).filter(Student.id == student_id, Student.centre_id == job.centre_id).first()
     if not student:
-        raise ValueError(f"unknown student {student_id}")
-    caller = CallerContext(user_id="worker-diagnostic", centre_id=student.centre_id, role="worker", student_id=None)
+        raise ValueError(f"unknown or out-of-scope student {student_id}")
 
-    run = start_run(db, job, model_client.provider, model_client.model_id)
-    tool_summaries = []
-
+    caller = _worker_context(job, student)
+    run = start_run(db, job, model_client.provider, model_client.model_id, worker_id=caller.user_id)
+    tool_summaries: list[str] = []
     try:
-        # 1) get_student_snapshot
-        ss_req = GetStudentSnapshotRequest(student_id=student_id)
-        ss_resp = get_student_snapshot(db, caller, ss_req)
-        record_tool_call(db, run, "get_student_snapshot", ss_req.model_dump(), ss_resp.model_dump())
+        snapshot_request = GetStudentSnapshotRequest(student_id=student_id)
+        snapshot = invoke_tool(db, caller, job, "get_student_snapshot", snapshot_request)
+        record_tool_call(db, run, "get_student_snapshot", snapshot_request.model_dump(), snapshot.model_dump())
         tool_summaries.append("get_student_snapshot")
 
-        # 2) get_attempt_evidence (bounded)
-        ev_req = GetAttemptEvidenceRequest(student_id=student_id, subskill_id=subskill_id)
-        ev_resp = get_attempt_evidence(db, caller, ev_req)
-        record_tool_call(db, run, "get_attempt_evidence", ev_req.model_dump(), ev_resp.model_dump())
+        # The attempt id identifies the trigger, but the proposal must be
+        # grounded in the bounded batch for this student/subskill.
+        evidence_request = GetAttemptEvidenceRequest(student_id=student_id, subskill_id=subskill_id)
+        evidence = invoke_tool(db, caller, job, "get_attempt_evidence", evidence_request)
+        record_tool_call(db, run, "get_attempt_evidence", evidence_request.model_dump(), evidence.model_dump())
         tool_summaries.append("get_attempt_evidence")
 
-        # 3) get_mastery_state (deterministic)
-        ms_req = GetMasteryStateRequest(student_id=student_id, subskill_id=subskill_id)
-        # May not exist if no state yet — compute from evidence
-        from backend.app.db.models import MasteryState
-        ms = db.query(MasteryState).filter(MasteryState.student_id == student_id, MasteryState.subskill_id == subskill_id).order_by(MasteryState.version.desc()).first()
-        if not ms:
-            # Compute and persist if missing (should have been created by seed, but handle)
-            from backend.app.services.mastery import upsert_mastery_state
-            ms = upsert_mastery_state(db, student_id, subskill_id)
+        state = (
+            db.query(MasteryState)
+            .filter(
+                MasteryState.student_id == student_id,
+                MasteryState.centre_id == student.centre_id,
+                MasteryState.subskill_id == subskill_id,
+            )
+            .order_by(MasteryState.version.desc())
+            .first()
+        )
+        if not state:
+            state = upsert_mastery_state(db, student_id, subskill_id)
             db.flush()
-        # Also call tool for audit
-        try:
-            ms_resp = get_mastery_state(db, caller, ms_req)
-            record_tool_call(db, run, "get_mastery_state", ms_req.model_dump(), ms_resp.model_dump())
-            tool_summaries.append("get_mastery_state")
-            deterministic_label = ms_resp.label
-            deterministic_confidence = ms_resp.confidence
-            evidence_ids = ev_resp.evidence_ids
-            policy_version = ms_resp.policy_version
-            policy_id = ms_resp.policy_id
-        except Exception:
-            # Fallback to computed
-            eligible, correct, _ = get_eligible_attempts(db, student_id, subskill_id)
-            computed = compute_mastery(eligible, correct)
-            deterministic_label = computed["label"]
-            deterministic_confidence = computed["confidence"]
-            evidence_ids = ev_resp.evidence_ids
-            policy_version = computed["policy_version"]
-            policy_id = computed["policy_id"]
+        mastery_request = GetMasteryStateRequest(student_id=student_id, subskill_id=subskill_id)
+        mastery = invoke_tool(db, caller, job, "get_mastery_state", mastery_request)
+        record_tool_call(db, run, "get_mastery_state", mastery_request.model_dump(), mastery.model_dump())
+        tool_summaries.append("get_mastery_state")
 
-        # 4) retrieve_approved_curriculum (optional grounding)
-        try:
-            cur_req = RetrieveCurriculumRequest(query=f"{subskill_id} fractions", subskill_id=subskill_id)
-            cur_resp = retrieve_approved_curriculum(db, caller, cur_req)
-            record_tool_call(db, run, "retrieve_approved_curriculum", cur_req.model_dump(), {"count": len(cur_resp.chunks)})
-            tool_summaries.append("retrieve_approved_curriculum")
-            source_refs = [c["id"] for c in cur_resp.chunks[:2]]
-        except Exception:
-            source_refs = []
+        curriculum_request = RetrieveCurriculumRequest(query=f"{subskill_id} fractions", subskill_id=subskill_id)
+        curriculum = invoke_tool(db, caller, job, "retrieve_approved_curriculum", curriculum_request)
+        record_tool_call(
+            db,
+            run,
+            "retrieve_approved_curriculum",
+            curriculum_request.model_dump(),
+            {"count": len(curriculum.chunks), "source_refs": [chunk["id"] for chunk in curriculum.chunks[:2]]},
+        )
+        tool_summaries.append("retrieve_approved_curriculum")
 
-        # Build prompt for model — include deterministic facts, instruct to not change label/confidence
-        eligible = ms.eligible_attempts if ms else ev_resp.eligible_attempts
-        correct = ms.correct_attempts if ms else ev_resp.correct_attempts
-        accuracy = ms.accuracy if ms else (round(correct/eligible,2) if eligible else 0.0)
+        policy = load_policy()
+        eligible = mastery.eligible_attempts
+        correct = mastery.correct_attempts
+        deterministic = compute_mastery(eligible, correct, policy)
+        evidence_ids = evidence.evidence_ids
+        policy_id = mastery.policy_id
+        policy_version = mastery.policy_version
+        conflicting = eligible >= 3 and 0 < correct < eligible
+        needs_more_evidence = deterministic["label"] == "insufficient_evidence" or conflicting
+
+        if deterministic["label"] == "insufficient_evidence":
+            _alert_once(
+                db,
+                job,
+                student,
+                subskill_id,
+                "low_evidence",
+                f"Insufficient evidence for {subskill_id}: {eligible} attempts. Collect more evidence.",
+            )
+        if conflicting:
+            _alert_once(
+                db,
+                job,
+                student,
+                subskill_id,
+                "conflicting",
+                f"Conflicting evidence for {subskill_id}: {correct} correct of {eligible} eligible attempts.",
+            )
 
         prompt = (
             f"Diagnostic proposal for student {student_id} subskill {subskill_id}. "
-            f"Evidence IDs: {evidence_ids}. Deterministic state: label={deterministic_label} confidence={deterministic_confidence} "
-            f"accuracy={accuracy} eligible={eligible} correct={correct} policy_version={policy_version}. "
-            f"Explain rationale referencing evidence and policy, provide alternative explanation if needed, and recommend next action. "
-            f"Do NOT change label or confidence. Return JSON matching MasteryProposal schema."
+            f"Evidence IDs: {evidence_ids}. Deterministic state: label={deterministic['label']} "
+            f"confidence={deterministic['confidence']} accuracy={deterministic['accuracy']} "
+            f"eligible={eligible} correct={correct} policy_id={policy_id} policy_version={policy_version}. "
+            f"Explain rationale referencing evidence IDs and policy version, provide an alternative explanation if needed, "
+            f"and recommend next action. Do NOT change label or confidence. Return JSON matching MasteryProposal schema."
         )
-
-        # 5) Model call with one conservative repair attempt
-        out = model_client.generate_structured(prompt, MasteryProposal)
-        parsed = out.parsed
-        # Record model invocation as tool-like for trace
-        record_tool_call(db, run, "model.generate_structured", {"prompt": prompt[:500], "schema": "MasteryProposal"}, {"raw": out.raw[:500], "parsed": parsed})
+        output = model_client.generate_structured(prompt, MasteryProposal)
+        _record_invocation(run, output.invocation)
+        record_tool_call(
+            db,
+            run,
+            "model.generate_structured",
+            {"prompt": prompt[:500], "schema": "MasteryProposal"},
+            {"raw": output.raw[:500], "parsed": output.parsed},
+        )
         tool_summaries.append("model.generate_structured")
 
-        # If invalid, try one repair
-        if parsed is None:
-            repair_prompt = prompt + " Your previous output was invalid JSON or failed schema validation. Return ONLY valid JSON matching the schema with correct label and confidence."
-            out2 = model_client.generate_structured(repair_prompt, MasteryProposal)
-            record_tool_call(db, run, "model.generate_structured(repair)", {"prompt": repair_prompt[:500]}, {"raw": out2.raw[:500], "parsed": out2.parsed})
-            parsed = out2.parsed
-            out = out2
-            if parsed is None:
-                # Still invalid -> mark needs review / failed_terminal
-                mark_needs_review(db, run, {"code": "invalid_model_output", "message": "model output failed validation after repair", "raw": out.raw[:1000]})
-                db.commit()
-                return {"status": "needs_tutor_review", "reason": "invalid_model_output"}
+        if output.parsed is None:
+            repair_prompt = prompt + " Previous output failed validation. Return only valid JSON matching the schema."
+            repaired = model_client.generate_structured(repair_prompt, MasteryProposal)
+            _record_invocation(run, repaired.invocation)
+            record_tool_call(
+                db,
+                run,
+                "model.generate_structured(repair)",
+                {"prompt": repair_prompt[:500], "schema": "MasteryProposal"},
+                {"raw": repaired.raw[:500], "parsed": repaired.parsed},
+            )
+            tool_summaries.append("model.generate_structured(repair)")
+            output = repaired
+        if output.parsed is None:
+            run.tool_calls_json = json.dumps(tool_summaries)
+            return _review(db, run, "invalid_model_output", "model output failed validation after repair", raw=output.raw[:1000])
 
-        # Validate that model did not change deterministic label/confidence
-        if parsed.get("label") != deterministic_label or abs(parsed.get("confidence", -1) - deterministic_confidence) > 0.001:
-            # Reject — model changed calculated values
-            record_tool_call(db, run, "validation.reject", parsed, {"expected_label": deterministic_label, "expected_confidence": deterministic_confidence})
-            mark_needs_review(db, run, {"code": "label_confidence_mismatch", "message": f"model changed deterministic values: got {parsed.get('label')}/{parsed.get('confidence')} expected {deterministic_label}/{deterministic_confidence}", "parsed": parsed})
-            db.commit()
-            return {"status": "needs_tutor_review", "reason": "label_confidence_mismatch"}
+        try:
+            proposal = MasteryProposal.model_validate(output.parsed)
+        except ValidationError as exc:
+            run.tool_calls_json = json.dumps(tool_summaries)
+            return _review(db, run, "invalid_proposal_schema", "proposal failed schema validation", errors=exc.errors())
 
-        # Validate evidence_ids and policy_version match
-        if set(parsed.get("evidence_ids", [])) != set(evidence_ids) or parsed.get("policy_version") != policy_version or parsed.get("policy_id") != policy_id:
-            mark_needs_review(db, run, {"code": "evidence_policy_mismatch", "message": "evidence or policy version mismatch"})
-            db.commit()
-            return {"status": "needs_tutor_review", "reason": "evidence_policy_mismatch"}
+        if proposal.student_id != student_id or proposal.subskill_id != subskill_id:
+            run.tool_calls_json = json.dumps(tool_summaries)
+            return _review(db, run, "student_scope_mismatch", "proposal identity did not match the job")
+        if proposal.label != deterministic["label"] or abs(proposal.confidence - deterministic["confidence"]) > 0.001:
+            run.tool_calls_json = json.dumps(tool_summaries)
+            return _review(
+                db,
+                run,
+                "label_confidence_mismatch",
+                "model changed deterministic values",
+                expected_label=deterministic["label"],
+                expected_confidence=deterministic["confidence"],
+                received_label=proposal.label,
+                received_confidence=proposal.confidence,
+            )
+        if set(proposal.evidence_ids) != set(evidence_ids) or proposal.policy_id != policy_id or proposal.policy_version != policy_version:
+            run.tool_calls_json = json.dumps(tool_summaries)
+            return _review(db, run, "evidence_policy_mismatch", "evidence or policy provenance did not match the deterministic state")
+        if len(proposal.evidence_ids) != len(set(proposal.evidence_ids)):
+            run.tool_calls_json = json.dumps(tool_summaries)
+            return _review(db, run, "duplicate_evidence_ids", "proposal contained duplicate evidence identifiers")
+        if policy_version not in proposal.reason or (evidence_ids and not any(item in proposal.reason for item in evidence_ids)):
+            run.tool_calls_json = json.dumps(tool_summaries)
+            return _review(db, run, "rationale_provenance_missing", "rationale did not cite evidence and policy version")
 
-        # Handle low evidence / conflicting evidence -> needs review but still persist proposal with appropriate status
-        if deterministic_label == "insufficient_evidence":
-            # Create tutor alert
-            alert = TutorAlert(id=f"alert-{uuid.uuid4().hex[:8]}", centre_id=caller.centre_id, student_id=student_id, subskill_id=subskill_id, job_id=job.id, type="low_evidence", message=f"Insufficient evidence for {subskill_id}: {eligible} attempts. Collect more evidence.", created_at=datetime.now(timezone.utc))
-            db.add(alert)
-            # Still persist proposal as needs_tutor_review? But spec says low evidence produces reviewable action
-            # We will complete with artifact but job will be marked needs_tutor_review if status indicates need more evidence
-            # If proposal status is not pending_tutor_review, still allow but we mark job accordingly
-            if parsed.get("status") not in ("pending_tutor_review", "needs_more_evidence", "needs_tutor_review"):
-                parsed["status"] = "needs_tutor_review"
-
-        # Persist artifact
+        safe_status = "needs_more_evidence" if needs_more_evidence else "pending_tutor_review"
+        safe_action = "collect_more_evidence" if needs_more_evidence else proposal.recommended_next_action
+        review_reason = None
+        if needs_more_evidence:
+            review_reason = {
+                "code": "low_evidence" if deterministic["label"] == "insufficient_evidence" else "conflicting_evidence",
+                "message": "proposal persisted for tutor review because the evidence is insufficient or conflicting",
+            }
         artifact_payload = {
             "student_id": student_id,
             "subskill_id": subskill_id,
-            "label": deterministic_label,
-            "confidence": deterministic_confidence,
+            "label": deterministic["label"],
+            "confidence": deterministic["confidence"],
             "evidence_ids": evidence_ids,
             "policy_id": policy_id,
             "policy_version": policy_version,
-            "rationale": parsed.get("reason", ""),
-            "alternative_explanation": parsed.get("alternative_explanation"),
-            "recommended_next_action": parsed.get("recommended_next_action"),
-            "source_refs": source_refs,
-            "status": parsed.get("status", "pending_tutor_review"),
+            "rationale": proposal.reason,
+            "alternative_explanation": proposal.alternative_explanation,
+            "recommended_next_action": safe_action,
+            "source_refs": [chunk["id"] for chunk in curriculum.chunks[:2]],
+            "status": safe_status,
         }
-        art = complete_job_with_artifact(db, run, "mastery_proposal", artifact_payload)
-        # Update run tool summary
         run.tool_calls_json = json.dumps(tool_summaries)
-        # If low evidence, mark job as needs_tutor_review even though artifact persisted
-        if deterministic_label == "insufficient_evidence":
-            # Keep artifact but job status becomes needs_tutor_review for tutor action
-            job = db.query(AgentJob).filter(AgentJob.id == job.id).first()
-            job.status = "needs_tutor_review"
-            job.updated_at = datetime.now(timezone.utc)
+        artifact = complete_job_with_artifact(
+            db,
+            run,
+            "mastery_proposal",
+            artifact_payload,
+            review_reason=review_reason,
+        )
         db.commit()
-        return {"status": "succeeded" if deterministic_label != "insufficient_evidence" else "needs_tutor_review", "artifact_id": art.id, "proposal": artifact_payload}
-
-    except Exception as e:
-        # Unexpected error -> retryable
+        return {
+            "status": "needs_tutor_review" if needs_more_evidence else "succeeded",
+            "artifact_id": artifact.id,
+            "proposal": artifact_payload,
+        }
+    except Exception as exc:
         try:
-            fail_run(db, run, {"code": "worker_error", "message": str(e)}, retryable=True)
+            fail_run(db, run, {"code": "worker_error", "message": str(exc)}, retryable=True)
             db.commit()
         except Exception:
-            pass
-        return {"status": "failed_retryable", "error": str(e)}
+            db.rollback()
+        return {"status": "failed_retryable", "error": str(exc)}

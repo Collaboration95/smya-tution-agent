@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { apiUrl } from "../../lib/api";
 
 type JobBrief = { id: string; type: string; status: string; student_id: string; input: any; created_at: string };
 
@@ -9,7 +10,7 @@ export default function TutorJobsPage() {
   const [userId, setUserId] = useState("TUT-SYNTH-ALPHA");
 
   useEffect(() => {
-    fetch(`http://localhost:8000/api/tutor/jobs`, { headers: { "X-User-Id": userId } })
+    fetch(apiUrl(`/api/tutor/jobs`), { headers: { "X-User-Id": userId } })
       .then(r => r.json().then(j => ({ ok: r.ok, j })))
       .then(({ ok, j }) => {
         if (!ok) throw new Error(JSON.stringify(j));
@@ -40,14 +41,14 @@ export default function TutorJobsPage() {
             <div className="text-sm text-gray-600">Student: {j.student_id} • Subskill: {j.input?.subskill_id} • {new Date(j.created_at).toLocaleString()}</div>
           </a>
         ))}
-        {jobs.length === 0 && !err ? <p className="text-sm text-gray-500">No jobs — trigger a diagnostic via API: POST /api/diagnostic/jobs?student_id=STU-SYNTH-A&subskill_id=FRC-ADD-SUB-UNLIKE</p> : null}
+        {jobs.length === 0 && !err ? <p className="text-sm text-gray-500">No jobs — trigger a diagnostic via POST /api/diagnostic/jobs?student_id=STU-SYNTH-A&subskill_id=FRC-ADD-SUB-UNLIKE</p> : null}
       </div>
       <details className="text-sm border rounded bg-white p-3">
         <summary className="font-medium cursor-pointer">How to demo</summary>
         <ol className="list-decimal pl-5 mt-2 space-y-1">
           <li>Ensure API is running and seeded: <code>python3 backend/scripts/seed.py</code></li>
-          <li>Create a job: <code>curl -X POST "http://localhost:8000/api/diagnostic/jobs?student_id=STU-SYNTH-A&amp;subskill_id=FRC-ADD-SUB-UNLIKE" -H "X-User-Id: TUT-SYNTH-ALPHA"</code></li>
-          <li>Run it: <code>curl -X POST http://localhost:8000/api/diagnostic/jobs/&#123;id&#125;/run -H "X-User-Id: TUT-SYNTH-ALPHA"</code></li>
+          <li>Create a job: <code>POST /api/diagnostic/jobs?student_id=STU-SYNTH-A&amp;subskill_id=FRC-ADD-SUB-UNLIKE</code></li>
+          <li>Run it: <code>POST /api/diagnostic/jobs/&#123;id&#125;/run</code> with <code>X-User-Id: TUT-SYNTH-ALPHA</code></li>
           <li>Open its trace below — you will see job, runs, tool calls, artifact, and decision buttons.</li>
         </ol>
       </details>

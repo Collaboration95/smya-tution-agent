@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useCallback } from "react";
 import { useParams } from "next/navigation";
+import { apiUrl } from "../../../../lib/api";
 
 export default function JobTracePage() {
   const params = useParams() as { id: string };
@@ -11,8 +13,8 @@ export default function JobTracePage() {
   const [reason, setReason] = useState("");
   const [correctedLabel, setCorrectedLabel] = useState("developing");
 
-  const load = () => {
-    fetch(`http://localhost:8000/api/tutor/jobs/${jobId}`, { headers: { "X-User-Id": userId }, cache: "no-store" })
+  const load = useCallback(() => {
+    fetch(apiUrl(`/api/tutor/jobs/${jobId}`), { headers: { "X-User-Id": userId }, cache: "no-store" })
       .then(r => r.json().then(j => ({ ok: r.ok, j })))
       .then(({ ok, j }) => {
         if (!ok) throw new Error(JSON.stringify(j));
@@ -20,13 +22,13 @@ export default function JobTracePage() {
         setErr(null);
       })
       .catch(e => setErr(String(e)));
-  };
-  useEffect(() => { load(); }, [jobId, userId]);
+  }, [jobId, userId]);
+  useEffect(() => { load(); }, [load]);
 
   const decide = async (action: string) => {
     const qs = new URLSearchParams({ action, reason });
     if (action === "edit") qs.set("corrected_label", correctedLabel);
-    const r = await fetch(`http://localhost:8000/api/tutor/jobs/${jobId}/decision?${qs.toString()}`, { method: "POST", headers: { "X-User-Id": userId } });
+    const r = await fetch(`${apiUrl(`/api/tutor/jobs/${jobId}/decision`)}?${qs.toString()}`, { method: "POST", headers: { "X-User-Id": userId } });
     const j = await r.json();
     if (!r.ok) { setErr(JSON.stringify(j)); return; }
     load();

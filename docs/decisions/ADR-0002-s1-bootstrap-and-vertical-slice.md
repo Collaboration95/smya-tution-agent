@@ -28,6 +28,7 @@ S1-01 is the smallest runnable boundary that the five later issues can extend wi
 ### S1-02 — Tenant-scoped learning records
 
 - Every centre-owned row carries `centre_id` (and where appropriate `student_id`/`class_id`). All queries scope by centre; cross-centre reads are denied at the query layer, not in the prompt.
+- Content and learning rows created by the synthetic loader are explicitly centre-scoped; only approved global curriculum/question rows may use a nullable centre scope.
 - `attempts` and `attempt_answers` are immutable factual inputs. Updates are rejected at the service layer.
 - `mastery_evidence` is append-only and stores `policy_id`, `policy_version`, `is_correct`, `evidence_id`. Derived state lives in `mastery_states` / `mastery_state_history` with `(student_id, subskill_id, version)` history; history enables period comparison in S3 without mutating past rows.
 - Deterministic policy is `domain/mastery_policy/mastery_policy_v1.json`. `backend/app/services/mastery.py` implements the exact calculation from the fixture validator (accuracy, confidence = min(0.90, 0.20 + 0.15*n), rounding half-up, threshold labels). Policy thresholds and history have unit tests; no LLM touches these numbers.
@@ -46,7 +47,7 @@ S1-01 is the smallest runnable boundary that the five later issues can extend wi
 - `agent_jobs` states: `queued | claimed | running | succeeded | needs_tutor_review | failed_retryable | failed_terminal | cancelled`. Transitions are enforced atomically with optimistic claim (`claimed_by`, `claimed_at`, `heartbeat_at`).
 - `agent_runs` is per-attempt trace; `tool_calls` stores bounded summaries. Idempotency keys are stable hashes of `(type, input)`. Artifact reconciliation ensures crash-retry does not duplicate artifacts.
 - `FakeModelClient` validates structured output; invalid JSON becomes `failed_retryable` once (one conservative repair attempt) then `needs_tutor_review` / `failed_terminal`. No token/cost is invented; fake runs record zero cost but still record `provider/model/duration`.
-- No new runtime per answer. One bounded worker process consumes jobs; AgentCore is deferred to S4.
+- Stale claimed/running jobs close any active run with a timeout outcome before requeue/terminal transition. `backend/scripts/worker.py` is the single bounded table-polled worker entry point; AgentCore is deferred to S4.
 
 ### S1-05 — Diagnostic worker
 
@@ -56,7 +57,7 @@ S1-01 is the smallest runnable boundary that the five later issues can extend wi
 
 ### S1-06 — Tutor trace
 
-- `GET /api/tutor/jobs/{id}` + `GET /api/tutor/jobs` return the scoped trace: job ID, trigger, type, input snapshot, state, run attempts, provider/model, duration/cost, tool summaries, artifact/evidence/source refs, validation result, stop reason, retry provenance, and actions (`accept | edit | reject | request_more_evidence`). Raw chain-of-thought and out-of-scope student data are never exposed.
+- `GET /api/tutor/jobs/{id}` + `GET /api/tutor/jobs` return the scoped trace: job ID, trigger, type, input snapshot, state, run attempts, provider/model, duration/cost, tool summaries, artifact/evidence/source refs, validation result, stop reason, retry provenance, and actions (`accept | edit | reject | more_evidence`). Decisions are persisted in `tutor_decisions` as well as audit events; edit creates a versioned tutor correction and override state. Raw chain-of-thought and out-of-scope student data are never exposed.
 
 ## Alternatives considered
 

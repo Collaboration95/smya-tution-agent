@@ -24,7 +24,10 @@ curl http://localhost:8000/
 # 4) Seed check (no secrets, no network)
 python3 backend/scripts/seed.py
 
-# 5) Tests
+# 5) Run one queued diagnostic job (or omit --once to poll continuously)
+python3 backend/scripts/worker.py --once
+
+# 6) Tests
 pytest backend/tests -v
 pytest -q
 # Fixture contract (repo root)

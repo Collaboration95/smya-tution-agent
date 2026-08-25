@@ -1,13 +1,17 @@
 from __future__ import annotations
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
+from typing import Literal
 
 class JobCreateRequest(BaseModel):
-    job_type: str
+    job_type: Literal["diagnostic", "assessment", "parent_report"]
     centre_id: str | None = None
     student_id: str | None = None
     input_payload: dict
-    max_retries: int = 3
+    max_retries: int = Field(default=3, ge=0, le=5)
+
+    model_config = {"extra": "forbid"}
+
 
 class JobResponse(BaseModel):
     id: str
