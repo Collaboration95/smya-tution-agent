@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from backend.app.db.models import (
     AgentJob,
     AgentRun,
+    AssessmentAssignment,
+    AssessmentDraft,
     Artifact,
     AuditEvent,
     Centre,
@@ -15,6 +17,8 @@ from backend.app.db.models import (
     MasteryEvidence,
     MasteryState,
     Attempt,
+    PracticeHint,
+    PracticeSession,
     Question,
     Student,
     ToolCallRecord,
@@ -23,7 +27,9 @@ from backend.app.db.models import (
     TutorDecision,
     User,
 )
+from backend.app.auth.context import CallerContext
 from backend.app.services.mastery import normalise_answer, upsert_mastery_state, load_policy
+from backend.app.practice.service import approve_draft, assign_draft, create_assessment_draft
 
 ROOT = Path(__file__).resolve().parents[3]
 CONTRACT = ROOT / "fixtures" / "fractions_contract_v1.json"
@@ -39,6 +45,12 @@ def seed_db(db: Session) -> dict:
     # This command is explicitly a synthetic demo reset. Clear workflow rows
     # first so a repeat cannot leave orphaned jobs or duplicate mastery history.
     for tbl in [
+        PracticeHint,
+        PracticeSession,
+        MasteryEvidence,
+        Attempt,
+        AssessmentAssignment,
+        AssessmentDraft,
         TutorDecision,
         TutorAlert,
         Artifact,
@@ -48,8 +60,6 @@ def seed_db(db: Session) -> dict:
         AuditEvent,
         TutorCorrection,
         MasteryState,
-        MasteryEvidence,
-        Attempt,
         Question,
         CurriculumChunk,
         GuardianLink,
@@ -120,6 +130,27 @@ def seed_db(db: Session) -> dict:
         if key not in seen:
             seen.add(key)
             upsert_mastery_state(db, key[0], key[1])
+
+    # Seed approved assignments for the responsive practice demo. The same
+    # service path as the API is used so the fixture exercises selection,
+    # approval, assignment, and audit boundaries on every reset.
+    tutor = CallerContext(
+        user_id="TUT-SYNTH-ALPHA",
+        centre_id=seed["entities"]["centres"][0]["id"],
+        role="tutor",
+    )
+    class_id = seed["entities"]["classes"][0]["id"]
+    for student_id in ("STU-SYNTH-A", "STU-SYNTH-B"):
+        draft = create_assessment_draft(
+            db,
+            caller=tutor,
+            student_id=student_id,
+            subskill_id="FRC-ADD-SUB-UNLIKE",
+            item_count=2,
+            class_id=class_id,
+        )
+        approve_draft(db, caller=tutor, draft_id=draft.id, reason="Seeded synthetic demo approval")
+        assign_draft(db, caller=tutor, draft_id=draft.id)
     db.commit()
     # Also ensure insufficient_evidence case: STU-SYNTH-A / FRC-MULTIPLY-WHOLE already covered (1 attempt)
     return {"contract": contract["contract_id"], "seed": seed["seed_id"]}

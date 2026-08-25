@@ -60,6 +60,18 @@ class SaveMasteryProposalResponse(BaseModel):
     proposal_id: str
     status: str
 
+class SaveAssessmentDraftRequest(BaseModel):
+    student_id: str
+    subskill_id: str
+    question_ids: list[str] = Field(min_length=1, max_length=10)
+    selection_policy_version: str
+    policy_version: str
+    class_id: str | None = None
+
+class SaveAssessmentDraftResponse(BaseModel):
+    draft_id: str
+    status: str
+
 class ToolError(BaseModel):
     code: Literal["permission_denied", "not_found", "validation_error", "unsupported_content"]
     message: str

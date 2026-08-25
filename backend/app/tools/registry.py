@@ -19,6 +19,8 @@ from backend.app.tools.contracts import (
     GetStudentSnapshotRequest,
     GetStudentSnapshotResponse,
     RetrieveCurriculumRequest,
+    SaveAssessmentDraftRequest,
+    SaveAssessmentDraftResponse,
 )
 
 TOOL_ALLOW_LIST = {
@@ -28,7 +30,7 @@ TOOL_ALLOW_LIST = {
         "get_mastery_state",
         "retrieve_approved_curriculum",
     },
-    "assessment": {"get_mastery_state", "retrieve_approved_curriculum"},
+    "assessment": {"get_mastery_state", "retrieve_approved_curriculum", "save_assessment_draft"},
     "parent_report": {"get_mastery_state"},
 }
 
@@ -176,6 +178,21 @@ def invoke_tool(db: Session, caller: CallerContext, job: AgentJob, tool_name: st
     elif tool_name == "retrieve_approved_curriculum":
         typed_request = RetrieveCurriculumRequest.model_validate(request)
         response = retrieve_approved_curriculum(db, caller, typed_request)
+    elif tool_name == "save_assessment_draft":
+        typed_request = SaveAssessmentDraftRequest.model_validate(request)
+        from backend.app.practice.service import create_assessment_draft_from_selection
+
+        draft = create_assessment_draft_from_selection(
+            db,
+            caller=caller,
+            student_id=typed_request.student_id,
+            subskill_id=typed_request.subskill_id,
+            question_ids=typed_request.question_ids,
+            selection_policy_version=typed_request.selection_policy_version,
+            policy_version=typed_request.policy_version,
+            class_id=typed_request.class_id,
+        )
+        response = SaveAssessmentDraftResponse(draft_id=draft.id, status=draft.status)
     else:
         raise PermissionDenied(f"unknown tool: {tool_name}")
 
