@@ -22,6 +22,7 @@ from backend.app.db.models import (
 )
 from backend.app.db.session import get_db
 from backend.app.services.jobs import get_job, list_jobs
+from backend.app.services.mastery import get_effective_mastery
 
 router = APIRouter(prefix="/api/tutor", tags=["tutor"])
 VALID_ACTIONS = {"accept", "edit", "reject", "more_evidence"}
@@ -78,6 +79,8 @@ def get_trace(
     artifacts = db.query(Artifact).filter(Artifact.job_id == job.id).order_by(Artifact.version.asc()).all()
     alerts = db.query(TutorAlert).filter(TutorAlert.job_id == job.id).order_by(TutorAlert.created_at.asc()).all()
     decisions = db.query(TutorDecision).filter(TutorDecision.job_id == job.id).order_by(TutorDecision.created_at.asc()).all()
+    job_input = json.loads(job.input_json)
+    effective_state = get_effective_mastery(db, job.student_id, job_input.get("subskill_id")) if job.student_id and job_input.get("subskill_id") else None
 
     def run_error(run: AgentRun):
         return json.loads(run.error_json) if run.error_json else None
@@ -98,7 +101,7 @@ def get_trace(
             "status": job.status,
             "centre_id": job.centre_id,
             "student_id": job.student_id,
-            "input": json.loads(job.input_json),
+            "input": job_input,
             "idempotency_key": job.idempotency_key,
             "retry_count": job.retry_count,
             "max_retries": job.max_retries,
@@ -106,6 +109,23 @@ def get_trace(
             "updated_at": job.updated_at.isoformat() if job.updated_at else None,
             "claimed_by": job.claimed_by,
         },
+        "effective_mastery": (
+            {
+                "id": effective_state.id,
+                "version": effective_state.version,
+                "label": effective_state.label,
+                "eligible_attempts": effective_state.eligible_attempts,
+                "correct_attempts": effective_state.correct_attempts,
+                "accuracy": effective_state.accuracy,
+                "confidence": effective_state.confidence,
+                "policy_id": effective_state.policy_id,
+                "policy_version": effective_state.policy_version,
+                "is_override": effective_state.is_override,
+                "created_at": effective_state.created_at.isoformat() if effective_state.created_at else None,
+            }
+            if effective_state
+            else None
+        ),
         "runs": [
             {
                 "id": run.id,

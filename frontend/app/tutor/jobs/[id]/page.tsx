@@ -4,6 +4,16 @@ import { useCallback } from "react";
 import { useParams } from "next/navigation";
 import { apiUrl } from "../../../../lib/api";
 
+function displayValue(value: unknown) {
+  if (value == null) return "—";
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
 export default function JobTracePage() {
   const params = useParams() as { id: string };
   const jobId = params.id;
@@ -58,6 +68,7 @@ export default function JobTracePage() {
           <h2 className="font-medium">Job</h2>
           <dl className="text-sm space-y-1">
             <div className="flex justify-between"><dt className="text-gray-500">Type</dt><dd>{data.job.type}</dd></div>
+            <div className="flex justify-between"><dt className="text-gray-500">Trigger</dt><dd>{data.job.input?.trigger ?? "—"}</dd></div>
             <div className="flex justify-between"><dt className="text-gray-500">Student</dt><dd>{data.job.student_id}</dd></div>
             <div className="flex justify-between"><dt className="text-gray-500">Subskill</dt><dd>{data.job.input?.subskill_id}</dd></div>
             <div className="flex justify-between"><dt className="text-gray-500">Centre</dt><dd>{data.job.centre_id}</dd></div>
@@ -65,13 +76,17 @@ export default function JobTracePage() {
             <div className="flex justify-between"><dt className="text-gray-500">Retries</dt><dd>{data.job.retry_count}/{data.job.max_retries}</dd></div>
             <div className="flex justify-between"><dt className="text-gray-500">Created</dt><dd>{new Date(data.job.created_at).toLocaleString()}</dd></div>
           </dl>
+          <details className="border rounded p-2">
+            <summary className="text-sm font-medium cursor-pointer">Input snapshot</summary>
+            <pre className="text-xs bg-gray-50 p-2 rounded mt-2 overflow-auto">{JSON.stringify(data.job.input, null, 2)}</pre>
+          </details>
         </div>
         <div className="border rounded bg-white p-3 space-y-2">
           <h2 className="font-medium">Provenance</h2>
           <dl className="text-sm space-y-1">
             <div className="flex justify-between"><dt className="text-gray-500">Provider</dt><dd>{data.provenance?.provider ?? "—"}</dd></div>
             <div className="flex justify-between"><dt className="text-gray-500">Model</dt><dd>{data.provenance?.model_id ?? "—"}</dd></div>
-            <div className="flex justify-between"><dt className="text-gray-500">Stop reason</dt><dd className="max-w-[200px] truncate" title={data.provenance?.stop_reason}>{String(data.provenance?.stop_reason).slice(0,120)}</dd></div>
+            <div className="flex justify-between"><dt className="text-gray-500">Stop reason</dt><dd className="max-w-[200px] truncate" title={displayValue(data.provenance?.stop_reason)}>{displayValue(data.provenance?.stop_reason).slice(0,120)}</dd></div>
             <div><dt className="text-gray-500">Tools</dt><dd className="flex flex-wrap gap-1 mt-1">{(data.provenance?.tool_summary ?? []).map((t:string)=><span key={t} className="text-xs border rounded px-1.5 py-0.5 bg-gray-50">{t}</span>)}</dd></div>
           </dl>
         </div>
@@ -85,6 +100,7 @@ export default function JobTracePage() {
               <div key={r.id} className="border rounded p-2 text-sm">
                 <div className="flex justify-between"><span className="font-mono">{r.id} (attempt {r.attempt})</span><span className={`px-2 py-0.5 rounded text-xs ${r.status==="succeeded"?"bg-green-100":r.status==="needs_tutor_review"?"bg-yellow-100":"bg-gray-100"}`}>{r.status}</span></div>
                 <div className="text-gray-600">{r.provider}/{r.model_id} • {r.duration_ms ?? "—"} ms {r.input_tokens!=null?`• in:${r.input_tokens} out:${r.output_tokens}`:""} {r.cost_usd!=null?`• $${r.cost_usd}`:""}</div>
+                <div className="text-gray-600">Validation: {r.validation?.status ?? "not_run"}{r.validation?.reason ? ` — ${r.validation.reason}` : ""}{r.validation?.review_required ? " — review required" : ""}</div>
                 {r.error ? <pre className="mt-1 bg-red-50 p-2 rounded text-xs overflow-auto">{JSON.stringify(r.error, null, 2)}</pre> : null}
                 {r.output ? <pre className="mt-1 bg-green-50 p-2 rounded text-xs overflow-auto">{JSON.stringify(r.output, null, 2)}</pre> : null}
               </div>
@@ -124,6 +140,36 @@ export default function JobTracePage() {
             {data.alerts.map((al:any)=> <div key={al.id} className="text-sm border rounded p-2 bg-yellow-50 mt-1">{al.type}: {al.message}</div>)}
           </div>
         ):null}
+      </section>
+
+      <section className="grid md:grid-cols-2 gap-4">
+        <div className="border rounded bg-white p-3 space-y-2">
+          <h2 className="font-medium">Effective mastery state</h2>
+          {data.effective_mastery ? (
+            <dl className="text-sm space-y-1">
+              <div className="flex justify-between"><dt className="text-gray-500">Label</dt><dd>{data.effective_mastery.label}</dd></div>
+              <div className="flex justify-between"><dt className="text-gray-500">Version</dt><dd>{data.effective_mastery.version}</dd></div>
+              <div className="flex justify-between"><dt className="text-gray-500">Accuracy</dt><dd>{data.effective_mastery.accuracy}</dd></div>
+              <div className="flex justify-between"><dt className="text-gray-500">Confidence</dt><dd>{data.effective_mastery.confidence}</dd></div>
+              <div className="flex justify-between"><dt className="text-gray-500">Policy</dt><dd>{data.effective_mastery.policy_id} / {data.effective_mastery.policy_version}</dd></div>
+              <div className="flex justify-between"><dt className="text-gray-500">Source</dt><dd>{data.effective_mastery.is_override ? "tutor override" : "deterministic"}</dd></div>
+            </dl>
+          ) : <p className="text-sm text-gray-500">No effective mastery state.</p>}
+        </div>
+        <div className="border rounded bg-white p-3 space-y-2">
+          <h2 className="font-medium">Decision history</h2>
+          {(data.decisions ?? []).length === 0 ? <p className="text-sm text-gray-500">No tutor decisions yet.</p> : (
+            <div className="space-y-2">
+              {data.decisions.map((decision:any) => (
+                <div key={decision.id} className="border rounded p-2 text-sm">
+                  <div className="flex justify-between"><span className="font-medium">{decision.action}</span><span className="text-gray-500">{new Date(decision.created_at).toLocaleString()}</span></div>
+                  <div className="text-gray-600">{decision.actor_id} ({decision.actor_role}){decision.corrected_label ? ` • ${decision.corrected_label}` : ""}</div>
+                  {decision.reason ? <div className="text-gray-600">{decision.reason}</div> : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="border rounded bg-white p-3 space-y-3">

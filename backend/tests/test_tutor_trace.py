@@ -63,6 +63,8 @@ def test_tutor_can_open_seeded_diagnostic_trace():
     assert "tool_calls" in j and len(j["tool_calls"]) >= 4
     assert "artifacts" in j and len(j["artifacts"]) == 1
     assert j["job"]["centre_id"] == "CTR-SYNTH-NORTHSTAR"
+    assert j["job"]["input"]["subskill_id"] == "FRC-ADD-SUB-UNLIKE"
+    assert j["effective_mastery"]["label"] in {"insufficient_evidence", "requires_support", "developing", "secure"}
     # Must not expose hidden reasoning
     assert "hidden" not in json.dumps(j).lower()
     app.dependency_overrides.clear()
@@ -142,4 +144,9 @@ def test_tutor_decision_persisted_and_visible_in_history():
     # Trace should still be readable after decision
     r = client.get(f"/api/tutor/jobs/{job_id}", headers={"X-User-Id":"TUT-SYNTH-ALPHA"})
     assert r.status_code == 200
+    trace = r.json()
+    assert trace["decisions"]
+    assert trace["decisions"][-1]["action"] == "edit"
+    assert trace["effective_mastery"]["is_override"] is True
+    assert trace["effective_mastery"]["label"] == "secure"
     app.dependency_overrides.clear()
