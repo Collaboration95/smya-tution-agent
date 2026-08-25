@@ -65,6 +65,7 @@ def seed_db(db: Session) -> dict:
     # Centres
     for c in seed["entities"]["centres"]:
         db.add(Centre(id=c["id"], display_name=c["display_name"], is_synthetic=c.get("is_synthetic", True)))
+    db.flush()
     # Tutors as users
     for t in seed["entities"]["tutors"]:
         db.add(User(id=t["id"], centre_id=t["centre_id"], role=t.get("role", "tutor"), display_name=t["display_name"], is_synthetic=t.get("is_synthetic", True)))
@@ -73,6 +74,9 @@ def seed_db(db: Session) -> dict:
         db.add(Student(id=s["id"], centre_id=s["centre_id"], level_id=s["level_id"], display_name=s["display_name"], is_synthetic=s.get("is_synthetic", True)))
         # Also create a user row for the student for RBAC tests (student role)
         db.add(User(id=f"USER-{s['id']}", centre_id=s["centre_id"], role="student", display_name=s["display_name"] + " (user)", is_synthetic=True))
+    # SQLAlchemy cannot infer ordering from bare foreign-key columns without
+    # ORM relationships; make referenced rows durable before classes/enrolments.
+    db.flush()
     # Classes
     for cl in seed["entities"]["classes"]:
         db.add(Class(id=cl["id"], centre_id=cl["centre_id"], tutor_id=cl["tutor_id"], subject_id=cl["subject_id"], level_id=cl["level_id"], topic_id=cl["topic_id"]))
