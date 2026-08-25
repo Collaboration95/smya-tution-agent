@@ -153,3 +153,74 @@ class AuditEvent(Base):
     before_json: Mapped[str] = mapped_column(Text, nullable=True)
     after_json: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+# Agent jobs and runs — S1-04
+class AgentJob(Base):
+    __tablename__ = "agent_jobs"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    job_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)  # diagnostic|assessment|parent_report
+    centre_id: Mapped[str] = mapped_column(String(64), nullable=True, index=True)
+    student_id: Mapped[str] = mapped_column(String(64), nullable=True, index=True)
+    input_json: Mapped[str] = mapped_column(Text, nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)  # queued|claimed|running|succeeded|needs_tutor_review|failed_retryable|failed_terminal|cancelled
+    claimed_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    max_retries: Mapped[int] = mapped_column(Integer, default=3, nullable=False)
+    error_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+class AgentRun(Base):
+    __tablename__ = "agent_runs"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    job_id: Mapped[str] = mapped_column(String(64), ForeignKey("agent_jobs.id", ondelete="CASCADE"), nullable=False, index=True)
+    attempt: Mapped[int] = mapped_column(Integer, nullable=False)
+    provider: Mapped[str] = mapped_column(String(32), nullable=False)
+    model_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)  # running|succeeded|failed_retryable|failed_terminal|needs_tutor_review
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    input_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    output_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    tool_calls_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    output_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+class ToolCallRecord(Base):
+    __tablename__ = "tool_call_records"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    run_id: Mapped[str] = mapped_column(String(64), ForeignKey("agent_runs.id", ondelete="CASCADE"), nullable=False, index=True)
+    job_id: Mapped[str] = mapped_column(String(64), ForeignKey("agent_jobs.id", ondelete="CASCADE"), nullable=False, index=True)
+    tool_name: Mapped[str] = mapped_column(String(64), nullable=False)
+    request_json: Mapped[str] = mapped_column(Text, nullable=False)
+    response_json: Mapped[str] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+
+class TutorAlert(Base):
+    __tablename__ = "tutor_alerts"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    centre_id: Mapped[str] = mapped_column(String(64), nullable=True, index=True)
+    student_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    subskill_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    job_id: Mapped[str] = mapped_column(String(64), ForeignKey("agent_jobs.id", ondelete="CASCADE"), nullable=False)
+    type: Mapped[str] = mapped_column(String(32), nullable=False)  # low_evidence|conflicting|unsupported
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+class Artifact(Base):
+    __tablename__ = "artifacts"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    job_id: Mapped[str] = mapped_column(String(64), ForeignKey("agent_jobs.id", ondelete="CASCADE"), nullable=False, index=True)
+    run_id: Mapped[str] = mapped_column(String(64), ForeignKey("agent_runs.id", ondelete="CASCADE"), nullable=False)
+    type: Mapped[str] = mapped_column(String(32), nullable=False)  # mastery_proposal|assessment_draft etc
+    payload_json: Mapped[str] = mapped_column(Text, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    __table_args__ = (UniqueConstraint("job_id", "version", name="uq_artifact_job_version"),)

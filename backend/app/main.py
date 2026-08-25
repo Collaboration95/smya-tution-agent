@@ -12,9 +12,11 @@ app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origin_list, allo
 
 app.include_router(health_router)
 from backend.app.api.routes.students import router as students_router  # noqa: E402
+from backend.app.api.routes.jobs import router as jobs_router  # noqa: E402
+from backend.app.api.routes.diagnostic import router as diagnostic_router  # noqa: E402
+from backend.app.api.routes.tutor import router as tutor_router  # noqa: E402
 
 app.include_router(students_router)
-
-# Later S1 routers will be included here:
-# app.include_router(diagnostic_router, prefix="/api")
-# app.include_router(job_router, prefix="/api")
+app.include_router(jobs_router)
+app.include_router(diagnostic_router)
+app.include_router(tutor_router)
