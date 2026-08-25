@@ -1,0 +1,37 @@
+version: "3.9"
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: smya-db
+    environment:
+      POSTGRES_DB: smya
+      POSTGRES_USER: smya
+      POSTGRES_PASSWORD: smya
+    ports:
+      - "5432:5432"
+    volumes:
+      - smya_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smya -d smya"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg2://smya:smya@db:5432/smya
+      MODEL_PROVIDER: fake
+      MODEL_ID: fake-diagnostic-v1
+      APP_ENV: local
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  smya_pgdata:
