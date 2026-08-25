@@ -8,9 +8,11 @@ class Base(DeclarativeBase):
 
 
 # Import models so that Alembic and Base.metadata.create_all see them.
-# S1-01 has no domain tables yet; later S1 issues import their models here.
-# Keeping the import in a function avoids circular imports at import time.
+# S1-02 populates tenant-scoped tables; import at module load ensures alembic and create_all see them.
+try:
+    from backend.app.db import models  # noqa: F401  # type: ignore
+except Exception:  # pragma: no cover - models may not be importable in some tool contexts
+    pass
 
 def import_models() -> None:  # pragma: no cover - import side-effect
-    # S1-02+ will populate these.
     from backend.app.db import models  # noqa: F401  # type: ignore
