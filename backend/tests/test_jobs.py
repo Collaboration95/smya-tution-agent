@@ -2,6 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from datetime import datetime, timedelta, timezone
+import pytest
 from backend.app.db.base import Base
 from backend.app.services.jobs import create_job, claim_job, start_run, record_tool_call, complete_job_with_artifact, fail_run, heartbeat, get_job
 from backend.app.services.seed import seed_db
@@ -31,6 +32,27 @@ def test_idempotency_and_dedup():
         db.commit()
         assert j1.id == j2.id
         assert j1.idempotency_key == j2.idempotency_key
+
+
+def test_draft_assessment_assignment_requires_approval():
+    Session = make_db()
+    with Session() as db:
+        with pytest.raises(ValueError, match="explicit approved status"):
+            create_job(
+                db,
+                "assessment",
+                "CTR-SYNTH-NORTHSTAR",
+                "STU-SYNTH-A",
+                {"student_id": "STU-SYNTH-A", "status": "draft_pending_tutor_approval"},
+            )
+        approved = create_job(
+            db,
+            "assessment",
+            "CTR-SYNTH-NORTHSTAR",
+            "STU-SYNTH-A",
+            {"student_id": "STU-SYNTH-A", "approval_status": "approved"},
+        )
+        assert approved.status == "queued"
 
 def test_claim_and_heartbeat_and_recovery():
     Session = make_db()

@@ -80,3 +80,19 @@ def test_caller_context_derives_centre_not_client():
     assert r.status_code == 200
     assert r.json()["centre_id"] == "CTR-SYNTH-NORTHSTAR"
     app.dependency_overrides.clear()
+
+
+def test_draft_assessment_assignment_is_rejected_by_api():
+    client, Session, engine = make_seeded_client()
+    payload = {
+        "job_type": "assessment",
+        "student_id": "STU-SYNTH-A",
+        "input_payload": {
+            "student_id": "STU-SYNTH-A",
+            "status": "draft_pending_tutor_approval",
+        },
+    }
+    r = client.post("/api/jobs", json=payload, headers={"X-User-Id": "TUT-SYNTH-ALPHA"})
+    assert r.status_code == 422, r.text
+    assert "approved status" in r.json()["detail"]
+    app.dependency_overrides.clear()

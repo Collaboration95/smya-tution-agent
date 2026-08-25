@@ -1,13 +1,15 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import pytest
 from backend.app.db.base import Base
 from backend.app.services.seed import seed_db
 from backend.app.auth.context import CallerContext
 from backend.app.tools.contracts import RetrieveCurriculumRequest
 from backend.app.tools.curriculum import retrieve_approved_curriculum
-from backend.app.tools.registry import get_student_snapshot, get_attempt_evidence, is_tool_allowed
+from backend.app.tools.registry import get_student_snapshot, get_attempt_evidence, invoke_tool, is_tool_allowed
 from backend.app.tools.contracts import GetStudentSnapshotRequest, GetAttemptEvidenceRequest
 from backend.app.auth.permissions import PermissionDenied
+from backend.app.services.jobs import create_job
 
 def seeded_db():
     engine = create_engine("sqlite+pysqlite:///:memory:")
@@ -59,6 +61,21 @@ def test_tool_allow_list_enforced():
     assert is_tool_allowed("diagnostic", "get_student_snapshot") is True
     assert is_tool_allowed("diagnostic", "save_assessment_draft") is False
     assert is_tool_allowed("parent_report", "retrieve_approved_curriculum") is False
+
+
+def test_draft_assessment_tool_is_rejected_at_dispatch():
+    Session = seeded_db()
+    with Session() as db:
+        caller = CallerContext(user_id="TUT-SYNTH-ALPHA", centre_id="CTR-SYNTH-NORTHSTAR", role="tutor")
+        job = create_job(
+            db,
+            "diagnostic",
+            "CTR-SYNTH-NORTHSTAR",
+            "STU-SYNTH-A",
+            {"student_id": "STU-SYNTH-A", "subskill_id": "FRC-ADD-SUB-UNLIKE"},
+        )
+        with pytest.raises(PermissionDenied, match="not allowed"):
+            invoke_tool(db, caller, job, "save_assessment_draft", {})
 
 def test_audit_events_created_on_tool_calls():
     Session = seeded_db()

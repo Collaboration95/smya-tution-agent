@@ -75,6 +75,10 @@ def create_job(
         raise ValueError(f"unsupported job type: {job_type}")
     if not 0 <= max_retries <= 5:
         raise ValueError("max_retries must be between 0 and 5")
+    if job_type == "assessment":
+        approval_status = input_payload.get("approval_status", input_payload.get("status"))
+        if approval_status != "approved":
+            raise ValueError("assessment assignment requires explicit approved status")
     payload_student_id = input_payload.get("student_id")
     if student_id and payload_student_id and payload_student_id != student_id:
         raise ValueError("job student_id does not match input_payload.student_id")
