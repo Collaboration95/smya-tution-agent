@@ -104,6 +104,14 @@ def test_unsupported_content_escalates_before_model_and_is_resolvable():
         assert not any(name.startswith("model.generate") for name in tool_names)
         alert_id = alert.id
 
+    trace = client.get(f"/api/tutor/jobs/{job.id}", headers={"X-User-Id": TUTOR_ID})
+    assert trace.status_code == 200, trace.text
+    assert trace.json()["runs"][0]["validation"] == {
+        "status": "passed",
+        "review_required": True,
+        "reason": "unsupported_content",
+    }
+
     resolved = client.post(
         f"/api/tutor/alerts/{alert_id}/resolve",
         json={"resolution": "keep_blocked", "reason": "Unsupported topic remains outside the approved corpus."},
@@ -159,6 +167,12 @@ def test_excluding_evidence_recomputes_state_and_trace_keeps_versioned_review_hi
         params={"action": "exclude_evidence", "evidence_id": evidence_id, "reason": "Attempt was duplicated."},
         headers={"X-User-Id": TUTOR_ID},
     )
+    missing_reason = client.post(
+        f"/api/tutor/jobs/{job_id}/decision",
+        params={"action": "exclude_evidence", "evidence_id": evidence_id, "reason": " "},
+        headers={"X-User-Id": TUTOR_ID},
+    )
+    assert missing_reason.status_code == 422, missing_reason.text
     assert excluded.status_code == 200, excluded.text
     payload = excluded.json()
     assert payload["status"] == "evidence_excluded"
@@ -169,6 +183,12 @@ def test_excluding_evidence_recomputes_state_and_trace_keeps_versioned_review_hi
         params={"action": "edit", "corrected_label": "developing", "reason": "Tutor re-evaluated the remaining evidence."},
         headers={"X-User-Id": TUTOR_ID},
     )
+    missing_edit_reason = client.post(
+        f"/api/tutor/jobs/{job_id}/decision",
+        params={"action": "edit", "corrected_label": "developing", "reason": " "},
+        headers={"X-User-Id": TUTOR_ID},
+    )
+    assert missing_edit_reason.status_code == 422, missing_edit_reason.text
     assert edited.status_code == 200, edited.text
 
     with Session() as db:

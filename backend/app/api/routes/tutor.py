@@ -127,6 +127,7 @@ def get_trace(
             "conflicting_evidence",
             "insufficient_history",
             "parent_report_requires_tutor_review",
+            "unsupported_content",
         }:
             return {"status": "passed", "review_required": True, "reason": error["code"]}
         return {"status": "failed", "reason": error.get("code", "worker_error")}
@@ -431,6 +432,8 @@ def decide(
         raise HTTPException(status_code=400, detail="corrected_label required for edit")
     if action == "exclude_evidence" and not evidence_id:
         raise HTTPException(status_code=400, detail="evidence_id required for exclude_evidence")
+    if action in {"edit", "exclude_evidence"} and (not reason or not reason.strip()):
+        raise HTTPException(status_code=422, detail="reason is required")
     job = get_job(db, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="not found")
