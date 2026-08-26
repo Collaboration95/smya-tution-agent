@@ -18,7 +18,7 @@
 | Data lifecycle | `backend/app/db/models.py`, `backend/app/services/jobs.py` | Domain/API implementation contract | 2026-08-25 |
 | Practice and approval workflow | `context.md` §§6–8; Issues #16–#18 | Product context / issue contract | 2026-08-25 |
 | Parent-report delivery gates | `docs/decisions/ADR-0004-s3-consent-gated-delivery.md`; Issue #20 | ADR / issue contract | 2026-08-26 |
-| Tutor corrections and escalation | Issue #21; `backend/app/auth/permissions.py`; `backend/app/db/models.py` | Issue / server policy / domain model | 2026-08-26 |
+| Tutor corrections and escalation | `docs/decisions/ADR-0005-s3-tutor-review-corrections.md`; Issue #21; `backend/app/auth/permissions.py`; `backend/app/db/models.py` | ADR / issue / server policy / domain model | 2026-08-26 |
 | Synthetic data and source approval | `docs/decisions/ADR-0001-synthetic-fractions-content.md` | ADR | 2026-08-25 |
 | UI identity | `DESIGN.md` | Project design context | 2026-08-25 |
 

@@ -30,8 +30,9 @@ from backend.app.db.models import (
     TutorEvidenceExclusion,
 )
 from backend.app.db.session import get_db
+from backend.app.review.service import append_evidence_exclusion, append_tutor_correction
 from backend.app.services.jobs import get_job, list_jobs
-from backend.app.services.mastery import get_effective_mastery, get_history, upsert_mastery_state
+from backend.app.services.mastery import get_effective_mastery, get_history
 from backend.app.schemas.review import TutorAlertResolveRequest
 
 router = APIRouter(prefix="/api/tutor", tags=["tutor"])
@@ -553,21 +554,18 @@ def decide(
         )
         if not latest_state:
             raise HTTPException(status_code=409, detail="no mastery state to update")
-        exclusion = TutorEvidenceExclusion(
-            id=f"exclude-{uuid.uuid4().hex[:8]}",
+        exclusion, updated_state = append_evidence_exclusion(
+            db,
             centre_id=caller.centre_id,
             evidence_id=evidence_id,
             student_id=job.student_id,
             subskill_id=subskill_id,
             author_tutor_id=caller.user_id,
             job_id=job.id,
-            reason=(reason or "tutor excluded evidence").strip(),
+            reason=reason.strip(),
             created_at=now,
         )
-        db.add(exclusion)
         decision.evidence_id = evidence_id
-        db.flush()
-        updated_state = upsert_mastery_state(db, job.student_id, subskill_id)
         job.status = "needs_tutor_review"
         job.updated_at = now
         _audit(
@@ -600,38 +598,20 @@ def decide(
     )
     if not latest_state:
         raise HTTPException(status_code=409, detail="no mastery state to correct")
-    correction = TutorCorrection(
-        id=f"corr-{uuid.uuid4().hex[:8]}",
+    correction, override = append_tutor_correction(
+        db,
         centre_id=caller.centre_id,
         student_id=job.student_id,
         subskill_id=subskill_id,
         author_tutor_id=caller.user_id,
-        original_state_id=latest_state.id,
+        original_state=latest_state,
         job_id=job.id,
         artifact_id=artifact.id if artifact else None,
         corrected_label=corrected_label,
-        reason=reason or "tutor edit",
-        supersedes_version=latest_state.version,
-    )
-    db.add(correction)
-    decision.correction_id = correction.id
-    override = MasteryState(
-        id=f"mst-{uuid.uuid4().hex[:8]}",
-        centre_id=caller.centre_id,
-        student_id=job.student_id,
-        subskill_id=subskill_id,
-        version=latest_state.version + 1,
-        eligible_attempts=latest_state.eligible_attempts,
-        correct_attempts=latest_state.correct_attempts,
-        accuracy=latest_state.accuracy,
-        confidence=latest_state.confidence,
-        label=corrected_label,
-        policy_id=latest_state.policy_id,
-        policy_version=latest_state.policy_version,
-        is_override=True,
+        reason=reason.strip(),
         created_at=now,
     )
-    db.add(override)
+    decision.correction_id = correction.id
     job.status = "succeeded"
     job.updated_at = now
     _audit(db, caller, "tutor_decision.edit", "mastery_state", override.id, before={"label": latest_state.label}, after={"label": corrected_label, "reason": reason, "correction_id": correction.id, "artifact_id": artifact.id if artifact else None})

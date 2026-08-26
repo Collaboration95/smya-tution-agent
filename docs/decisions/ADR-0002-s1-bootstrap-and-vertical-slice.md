@@ -59,7 +59,7 @@ S1-01 is the smallest runnable boundary that the five later issues can extend wi
 
 ### S1-06 — Tutor trace
 
-- `GET /api/tutor/jobs/{id}` + `GET /api/tutor/jobs` return the scoped trace: job ID, trigger, type, input snapshot, state, run attempts, provider/model, duration/cost, tool summaries, artifact/evidence/source refs, validation result, stop reason, retry provenance, and actions (`accept | edit | reject | more_evidence`). Decisions are persisted in `tutor_decisions` as well as audit events; edit creates a versioned tutor correction and override state. Raw chain-of-thought and out-of-scope student data are never exposed.
+- `GET /api/tutor/jobs/{id}` + `GET /api/tutor/jobs` return the scoped trace: job ID, trigger, type, input snapshot, state, run attempts, provider/model, duration/cost, tool summaries, artifact/evidence/source refs, validation result, stop reason, retry provenance, and actions (`accept | edit | reject | more_evidence`; S3 adds evidence exclusion and alert resolution). Decisions are persisted in `tutor_decisions` as well as audit events; edit creates a versioned tutor correction and override state. Raw chain-of-thought and out-of-scope student data are never exposed. S3-03 details are recorded in ADR-0005.
 
 ## Alternatives considered
 
