@@ -215,9 +215,24 @@ class TutorCorrection(Base):
     subskill_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     author_tutor_id: Mapped[str] = mapped_column(String(64), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     original_state_id: Mapped[str] = mapped_column(String(64), ForeignKey("mastery_states.id", ondelete="RESTRICT"), nullable=True)
+    job_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("agent_jobs.id", ondelete="SET NULL"), nullable=True, index=True)
+    artifact_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("artifacts.id", ondelete="SET NULL"), nullable=True, index=True)
     corrected_label: Mapped[str] = mapped_column(String(32), nullable=False)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     supersedes_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class TutorEvidenceExclusion(Base):
+    __tablename__ = "tutor_evidence_exclusions"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    centre_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=True, index=True)
+    evidence_id: Mapped[str] = mapped_column(String(64), ForeignKey("mastery_evidence.id", ondelete="RESTRICT"), nullable=False, unique=True, index=True)
+    student_id: Mapped[str] = mapped_column(String(64), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    subskill_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    author_tutor_id: Mapped[str] = mapped_column(String(64), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    job_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("agent_jobs.id", ondelete="SET NULL"), nullable=True, index=True)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
 class AuditEvent(Base):
@@ -291,6 +306,11 @@ class TutorAlert(Base):
     job_id: Mapped[str] = mapped_column(String(64), ForeignKey("agent_jobs.id", ondelete="CASCADE"), nullable=False)
     type: Mapped[str] = mapped_column(String(32), nullable=False)  # low_evidence|conflicting|unsupported
     message: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="open", nullable=False, index=True)  # open|resolved
+    resolution: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    resolution_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolved_by: Mapped[str | None] = mapped_column(String(64), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
@@ -306,6 +326,9 @@ class TutorDecision(Base):
     action: Mapped[str] = mapped_column(String(32), nullable=False)  # accept|edit|reject|more_evidence
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     corrected_label: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    evidence_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("mastery_evidence.id", ondelete="SET NULL"), nullable=True, index=True)
+    alert_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("tutor_alerts.id", ondelete="SET NULL"), nullable=True, index=True)
+    correction_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("tutor_corrections.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     __table_args__ = (Index("ix_tutor_decisions_job_created", "job_id", "created_at"),)
 
@@ -400,3 +423,23 @@ def _reject_evidence_update(mapper, connection, target):
 @event.listens_for(MasteryEvidence, "before_delete")
 def _reject_evidence_delete(mapper, connection, target):
     raise ValueError("mastery evidence is append-only")
+
+
+@event.listens_for(TutorCorrection, "before_update")
+def _reject_tutor_correction_update(mapper, connection, target):
+    raise ValueError("tutor corrections are append-only")
+
+
+@event.listens_for(TutorCorrection, "before_delete")
+def _reject_tutor_correction_delete(mapper, connection, target):
+    raise ValueError("tutor corrections are append-only")
+
+
+@event.listens_for(TutorEvidenceExclusion, "before_update")
+def _reject_evidence_exclusion_update(mapper, connection, target):
+    raise ValueError("evidence exclusions are append-only")
+
+
+@event.listens_for(TutorEvidenceExclusion, "before_delete")
+def _reject_evidence_exclusion_delete(mapper, connection, target):
+    raise ValueError("evidence exclusions are append-only")

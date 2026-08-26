@@ -18,6 +18,7 @@
 | Data lifecycle | `backend/app/db/models.py`, `backend/app/services/jobs.py` | Domain/API implementation contract | 2026-08-25 |
 | Practice and approval workflow | `context.md` §§6–8; Issues #16–#18 | Product context / issue contract | 2026-08-25 |
 | Parent-report delivery gates | `docs/decisions/ADR-0004-s3-consent-gated-delivery.md`; Issue #20 | ADR / issue contract | 2026-08-26 |
+| Tutor corrections and escalation | Issue #21; `backend/app/auth/permissions.py`; `backend/app/db/models.py` | Issue / server policy / domain model | 2026-08-26 |
 | Synthetic data and source approval | `docs/decisions/ADR-0001-synthetic-fractions-content.md` | ADR | 2026-08-25 |
 | UI identity | `DESIGN.md` | Project design context | 2026-08-25 |
 
@@ -43,6 +44,7 @@
 | Toast | Inline status region for this prototype | this contract | success/warning/error | browser live-region check |
 | CRUD | Assessment/practice service and route contracts | `backend/app/practice/service.py` | approve/assign/start/close | API integration tests |
 | Parent report workflow | Tutor report route + communication service | `frontend/app/tutor/reports/page.tsx`; `backend/app/communication/delivery.py` | approve/reject/queue/simulate | API denial/success tests + browser flow |
+| Tutor review ledger | Existing tutor trace route + tutor review API | `frontend/app/tutor/jobs/[id]/page.tsx`; `backend/app/api/routes/tutor.py` | correction/exclusion/alert resolution | scoped API tests + browser trace flow |
 
 ## Component behavior
 
@@ -74,6 +76,8 @@
 | Approve parent report | Tutor selects a verified consenting guardian | Button busy; server-confirmed | Same report card | “Report approved” | Keep report open; show blocked gate if recipient/consent fails | Status heading | Issue #20 / ADR-0004 |
 | Queue parent report | Tutor selects Queue simulated delivery | Button busy; server-confirmed | Same report card | “Report queued” | Keep report open; revalidate recipient and consent | Status heading | Issue #20 / ADR-0004 |
 | Send simulated report | Tutor selects Send simulated copy | Button busy; server-confirmed | Same report card | “Simulated delivery completed” | Keep report open; show blocked gate and retry after correction | Status heading | Issue #20 / ADR-0004 |
+| Exclude evidence | Tutor selects Exclude evidence with a reason | Button busy; server-confirmed | Same job trace | “Evidence excluded and mastery history recomputed” | Preserve reason and show API error inline | Status region / updated history | Issue #21 |
+| Resolve tutor alert | Tutor records a resolution reason | Button busy; server-confirmed | Same job trace | “Alert resolution recorded” | Keep alert open; explain assignment or validation failure | Status region / alert | Issue #21 |
 | Cancel/back | Student selects Back to assignments | None | `/student` | None | Unsaved answer is not submitted | Back link | Issue #18 |
 
 ## Navigation and responsive behavior
@@ -111,6 +115,11 @@
   pessimistic; server state is the source of truth. A 403 explains the tutor
   assignment boundary. A 409 keeps the report visible and names the recipient,
   consent, or lifecycle correction required.
+- **Tutor-review mutations:** Corrections, evidence exclusions, and alert
+  resolutions are pessimistic and server-audited. The trace keeps the original
+  artifact/state visible while adding a versioned result. Unsupported content
+  remains blocked after alert resolution; the UI never implies that review alone
+  authorizes an answer or external delivery.
 
 ## Validation
 

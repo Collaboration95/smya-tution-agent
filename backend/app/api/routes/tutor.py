@@ -9,24 +9,43 @@ from sqlalchemy.orm import Session
 
 from backend.app.auth.context import CallerContext
 from backend.app.auth.deps import get_caller_context
-from backend.app.auth.permissions import PermissionDenied, can_read_job, require_job_access, require_job_decision_access
+from backend.app.auth.permissions import (
+    PermissionDenied,
+    can_approve_student,
+    can_read_job,
+    can_read_student,
+    require_job_access,
+    require_job_decision_access,
+)
 from backend.app.db.models import (
     AgentRun,
     Artifact,
     AuditEvent,
+    MasteryEvidence,
     MasteryState,
     ToolCallRecord,
     TutorAlert,
     TutorCorrection,
     TutorDecision,
+    TutorEvidenceExclusion,
 )
 from backend.app.db.session import get_db
 from backend.app.services.jobs import get_job, list_jobs
-from backend.app.services.mastery import get_effective_mastery
+from backend.app.services.mastery import get_effective_mastery, get_history, upsert_mastery_state
+from backend.app.schemas.review import TutorAlertResolveRequest
 
 router = APIRouter(prefix="/api/tutor", tags=["tutor"])
-VALID_ACTIONS = {"accept", "edit", "reject", "more_evidence"}
+VALID_ACTIONS = {"accept", "edit", "reject", "more_evidence", "exclude_evidence"}
 VALID_LABELS = {"insufficient_evidence", "requires_support", "developing", "secure"}
+VALID_ALERT_RESOLUTIONS = {
+    "acknowledged",
+    "collect_more_evidence",
+    "corrected",
+    "dismissed",
+    "keep_blocked",
+    "resolved",
+    "supported_content_selected",
+}
 
 
 def _audit(
@@ -80,7 +99,21 @@ def get_trace(
     alerts = db.query(TutorAlert).filter(TutorAlert.job_id == job.id).order_by(TutorAlert.created_at.asc()).all()
     decisions = db.query(TutorDecision).filter(TutorDecision.job_id == job.id).order_by(TutorDecision.created_at.asc()).all()
     job_input = json.loads(job.input_json)
-    effective_state = get_effective_mastery(db, job.student_id, job_input.get("subskill_id")) if job.student_id and job_input.get("subskill_id") else None
+    subskill_id = job_input.get("subskill_id")
+    effective_state = get_effective_mastery(db, job.student_id, subskill_id) if job.student_id and subskill_id else None
+    mastery_history = get_history(db, job.student_id, subskill_id) if job.student_id and subskill_id else []
+    corrections = (
+        db.query(TutorCorrection)
+        .filter(TutorCorrection.job_id == job.id)
+        .order_by(TutorCorrection.created_at.asc())
+        .all()
+    )
+    evidence_exclusions = (
+        db.query(TutorEvidenceExclusion)
+        .filter(TutorEvidenceExclusion.job_id == job.id)
+        .order_by(TutorEvidenceExclusion.created_at.asc())
+        .all()
+    )
 
     def run_error(run: AgentRun):
         return json.loads(run.error_json) if run.error_json else None
@@ -171,7 +204,17 @@ def get_trace(
             for artifact in artifacts
         ],
         "alerts": [
-            {"id": alert.id, "type": alert.type, "message": alert.message, "created_at": alert.created_at.isoformat()}
+            {
+                "id": alert.id,
+                "type": alert.type,
+                "message": alert.message,
+                "status": alert.status,
+                "resolution": alert.resolution,
+                "resolution_reason": alert.resolution_reason,
+                "resolved_by": alert.resolved_by,
+                "resolved_at": alert.resolved_at.isoformat() if alert.resolved_at else None,
+                "created_at": alert.created_at.isoformat(),
+            }
             for alert in alerts
         ],
         "decisions": [
@@ -182,10 +225,51 @@ def get_trace(
                 "actor_role": decision.actor_role,
                 "reason": decision.reason,
                 "corrected_label": decision.corrected_label,
+                "evidence_id": decision.evidence_id,
+                "alert_id": decision.alert_id,
+                "correction_id": decision.correction_id,
                 "artifact_id": decision.artifact_id,
                 "created_at": decision.created_at.isoformat(),
             }
             for decision in decisions
+        ],
+        "corrections": [
+            {
+                "id": correction.id,
+                "job_id": correction.job_id,
+                "artifact_id": correction.artifact_id,
+                "original_state_id": correction.original_state_id,
+                "corrected_label": correction.corrected_label,
+                "author_tutor_id": correction.author_tutor_id,
+                "reason": correction.reason,
+                "supersedes_version": correction.supersedes_version,
+                "created_at": correction.created_at.isoformat(),
+            }
+            for correction in corrections
+        ],
+        "evidence_exclusions": [
+            {
+                "id": exclusion.id,
+                "evidence_id": exclusion.evidence_id,
+                "author_tutor_id": exclusion.author_tutor_id,
+                "reason": exclusion.reason,
+                "created_at": exclusion.created_at.isoformat(),
+            }
+            for exclusion in evidence_exclusions
+        ],
+        "mastery_history": [
+            {
+                "id": state.id,
+                "version": state.version,
+                "label": state.label,
+                "eligible_attempts": state.eligible_attempts,
+                "correct_attempts": state.correct_attempts,
+                "accuracy": state.accuracy,
+                "confidence": state.confidence,
+                "is_override": state.is_override,
+                "created_at": state.created_at.isoformat(),
+            }
+            for state in mastery_history
         ],
         "provenance": {
             "provider": latest_run.provider if latest_run else None,
@@ -219,12 +303,123 @@ def list_tutor_jobs(
     ]
 
 
+def _alert_payload(alert: TutorAlert) -> dict:
+    return {
+        "id": alert.id,
+        "job_id": alert.job_id,
+        "centre_id": alert.centre_id,
+        "student_id": alert.student_id,
+        "subskill_id": alert.subskill_id,
+        "type": alert.type,
+        "message": alert.message,
+        "status": alert.status,
+        "resolution": alert.resolution,
+        "resolution_reason": alert.resolution_reason,
+        "resolved_by": alert.resolved_by,
+        "resolved_at": alert.resolved_at.isoformat() if alert.resolved_at else None,
+        "created_at": alert.created_at.isoformat() if alert.created_at else None,
+    }
+
+
+@router.get("/alerts")
+def list_tutor_alerts(
+    status: str | None = None,
+    student_id: str | None = None,
+    alert_type: str | None = None,
+    caller: CallerContext = Depends(get_caller_context),
+    db: Session = Depends(get_db),
+):
+    if caller.role not in ("tutor", "admin"):
+        raise HTTPException(status_code=403, detail="forbidden")
+    if status is not None and status not in {"open", "resolved"}:
+        raise HTTPException(status_code=422, detail="invalid alert status")
+    if student_id is not None and not can_read_student(db, caller, student_id):
+        raise HTTPException(status_code=403, detail="forbidden")
+    query = db.query(TutorAlert).filter(TutorAlert.centre_id == caller.centre_id)
+    if status is not None:
+        query = query.filter(TutorAlert.status == status)
+    if student_id is not None:
+        query = query.filter(TutorAlert.student_id == student_id)
+    if alert_type is not None:
+        query = query.filter(TutorAlert.type == alert_type)
+    alerts = query.order_by(TutorAlert.created_at.desc(), TutorAlert.id.desc()).all()
+    return [_alert_payload(alert) for alert in alerts if can_read_student(db, caller, alert.student_id)]
+
+
+@router.post("/alerts/{alert_id}/resolve")
+def resolve_tutor_alert(
+    alert_id: str,
+    reason: str | None = None,
+    resolution: str | None = None,
+    payload: TutorAlertResolveRequest | None = None,
+    caller: CallerContext = Depends(get_caller_context),
+    db: Session = Depends(get_db),
+):
+    if caller.role not in ("tutor", "admin"):
+        raise HTTPException(status_code=403, detail="forbidden")
+    alert = db.query(TutorAlert).filter(TutorAlert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(status_code=404, detail="not found")
+    if alert.centre_id != caller.centre_id or not can_approve_student(db, caller, alert.student_id):
+        raise HTTPException(status_code=403, detail="forbidden")
+    selected_reason = payload.reason if payload is not None else reason
+    selected_resolution = payload.resolution if payload is not None else (resolution or "acknowledged")
+    if not selected_reason or not selected_reason.strip():
+        raise HTTPException(status_code=422, detail="reason is required")
+    if selected_resolution not in VALID_ALERT_RESOLUTIONS:
+        raise HTTPException(status_code=422, detail="invalid alert resolution")
+    if alert.status == "resolved":
+        return {"status": "resolved", "alert": _alert_payload(alert)}
+
+    job = get_job(db, alert.job_id)
+    if not job:
+        raise HTTPException(status_code=409, detail="alert job not found")
+    now = datetime.now(timezone.utc)
+    alert.status = "resolved"
+    alert.resolution = selected_resolution
+    alert.resolution_reason = selected_reason.strip()
+    alert.resolved_by = caller.user_id
+    alert.resolved_at = now
+    latest_artifact = (
+        db.query(Artifact)
+        .filter(Artifact.job_id == job.id)
+        .order_by(Artifact.version.desc())
+        .first()
+    )
+    decision = TutorDecision(
+        id=f"decision-{uuid.uuid4().hex[:8]}",
+        job_id=job.id,
+        artifact_id=latest_artifact.id if latest_artifact else None,
+        centre_id=caller.centre_id,
+        student_id=alert.student_id,
+        actor_id=caller.user_id,
+        actor_role=caller.role,
+        action="resolve_alert",
+        reason=selected_reason.strip(),
+        alert_id=alert.id,
+        created_at=now,
+    )
+    db.add(decision)
+    _audit(
+        db,
+        caller,
+        "tutor_alert.resolve",
+        "tutor_alert",
+        alert.id,
+        before={"status": "open"},
+        after={"status": "resolved", "resolution": selected_resolution, "reason": selected_reason.strip()},
+    )
+    db.commit()
+    return {"status": "resolved", "alert": _alert_payload(alert), "decision_id": decision.id, "job_status": job.status}
+
+
 @router.post("/jobs/{job_id}/decision")
 def decide(
     job_id: str,
     action: str,
     reason: str | None = None,
     corrected_label: str | None = None,
+    evidence_id: str | None = None,
     caller: CallerContext = Depends(get_caller_context),
     db: Session = Depends(get_db),
 ):
@@ -234,6 +429,8 @@ def decide(
         raise HTTPException(status_code=422, detail="invalid corrected_label")
     if action == "edit" and corrected_label is None:
         raise HTTPException(status_code=400, detail="corrected_label required for edit")
+    if action == "exclude_evidence" and not evidence_id:
+        raise HTTPException(status_code=400, detail="evidence_id required for exclude_evidence")
     job = get_job(db, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="not found")
@@ -250,7 +447,7 @@ def decide(
         raise HTTPException(status_code=409, detail="cancelled job cannot receive this decision")
 
     artifacts = db.query(Artifact).filter(Artifact.job_id == job.id).order_by(Artifact.version.desc()).all()
-    if action in ("accept", "edit") and not artifacts:
+    if action in ("accept", "edit", "exclude_evidence") and not artifacts:
         raise HTTPException(status_code=409, detail="no artifact to decide")
     artifact = artifacts[0] if artifacts else None
 
@@ -262,6 +459,7 @@ def decide(
             TutorDecision.action == action,
             TutorDecision.reason == reason,
             TutorDecision.corrected_label == corrected_label,
+            TutorDecision.evidence_id == evidence_id,
         )
         .order_by(TutorDecision.created_at.desc())
         .first()
@@ -281,6 +479,7 @@ def decide(
         action=action,
         reason=reason,
         corrected_label=corrected_label,
+        evidence_id=evidence_id,
         created_at=now,
     )
     db.add(decision)
@@ -320,6 +519,74 @@ def decide(
         return {"status": "more_evidence", "job_id": job.id, "decision_id": decision.id}
 
     subskill_id = json.loads(job.input_json).get("subskill_id")
+    if action == "exclude_evidence":
+        artifact_payload = json.loads(artifact.payload_json) if artifact else {}
+        if evidence_id not in set(artifact_payload.get("evidence_ids", [])):
+            raise HTTPException(status_code=422, detail="evidence_id is not part of the proposal")
+        evidence = (
+            db.query(MasteryEvidence)
+            .filter(
+                MasteryEvidence.id == evidence_id,
+                MasteryEvidence.student_id == job.student_id,
+                MasteryEvidence.centre_id == caller.centre_id,
+                MasteryEvidence.subskill_id == subskill_id,
+            )
+            .first()
+        )
+        if not evidence:
+            raise HTTPException(status_code=404, detail="evidence not found")
+        if db.query(TutorEvidenceExclusion).filter(TutorEvidenceExclusion.evidence_id == evidence_id).first():
+            raise HTTPException(status_code=409, detail="evidence is already excluded")
+        latest_state = (
+            db.query(MasteryState)
+            .filter(
+                MasteryState.student_id == job.student_id,
+                MasteryState.subskill_id == subskill_id,
+                MasteryState.centre_id == caller.centre_id,
+            )
+            .order_by(MasteryState.version.desc())
+            .with_for_update()
+            .first()
+        )
+        if not latest_state:
+            raise HTTPException(status_code=409, detail="no mastery state to update")
+        exclusion = TutorEvidenceExclusion(
+            id=f"exclude-{uuid.uuid4().hex[:8]}",
+            centre_id=caller.centre_id,
+            evidence_id=evidence_id,
+            student_id=job.student_id,
+            subskill_id=subskill_id,
+            author_tutor_id=caller.user_id,
+            job_id=job.id,
+            reason=(reason or "tutor excluded evidence").strip(),
+            created_at=now,
+        )
+        db.add(exclusion)
+        decision.evidence_id = evidence_id
+        db.flush()
+        updated_state = upsert_mastery_state(db, job.student_id, subskill_id)
+        job.status = "needs_tutor_review"
+        job.updated_at = now
+        _audit(
+            db,
+            caller,
+            "tutor_decision.exclude_evidence",
+            "tutor_evidence_exclusion",
+            exclusion.id,
+            before={"effective_state_id": latest_state.id, "eligible_attempts": latest_state.eligible_attempts},
+            after={"effective_state_id": updated_state.id, "eligible_attempts": updated_state.eligible_attempts, "evidence_id": evidence_id},
+        )
+        db.commit()
+        return {
+            "status": "evidence_excluded",
+            "job_id": job.id,
+            "decision_id": decision.id,
+            "exclusion_id": exclusion.id,
+            "new_state_id": updated_state.id,
+            "label": updated_state.label,
+            "eligible_attempts": updated_state.eligible_attempts,
+        }
+
     latest_state = (
         db.query(MasteryState)
         .filter(MasteryState.student_id == job.student_id, MasteryState.subskill_id == subskill_id)
@@ -337,11 +604,14 @@ def decide(
         subskill_id=subskill_id,
         author_tutor_id=caller.user_id,
         original_state_id=latest_state.id,
+        job_id=job.id,
+        artifact_id=artifact.id if artifact else None,
         corrected_label=corrected_label,
         reason=reason or "tutor edit",
         supersedes_version=latest_state.version,
     )
     db.add(correction)
+    decision.correction_id = correction.id
     override = MasteryState(
         id=f"mst-{uuid.uuid4().hex[:8]}",
         centre_id=caller.centre_id,
@@ -361,6 +631,6 @@ def decide(
     db.add(override)
     job.status = "succeeded"
     job.updated_at = now
-    _audit(db, caller, "tutor_decision.edit", "mastery_state", override.id, before={"label": latest_state.label}, after={"label": corrected_label, "reason": reason})
+    _audit(db, caller, "tutor_decision.edit", "mastery_state", override.id, before={"label": latest_state.label}, after={"label": corrected_label, "reason": reason, "correction_id": correction.id, "artifact_id": artifact.id if artifact else None})
     db.commit()
     return {"status": "edited", "correction_id": correction.id, "new_state_id": override.id, "label": corrected_label, "decision_id": decision.id}

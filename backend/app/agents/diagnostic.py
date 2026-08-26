@@ -142,6 +142,24 @@ def run_diagnostic(db: Session, job: AgentJob, model_client: ModelClient) -> dic
         )
         tool_summaries.append("retrieve_approved_curriculum")
 
+        if not curriculum.chunks:
+            _alert_once(
+                db,
+                job,
+                student,
+                subskill_id,
+                "unsupported",
+                f"No approved curriculum is available for {subskill_id}; the diagnostic is blocked pending tutor review.",
+            )
+            run.tool_calls_json = json.dumps(tool_summaries)
+            return _review(
+                db,
+                run,
+                "unsupported_content",
+                "no approved curriculum was found for this subskill",
+                subskill_id=subskill_id,
+            )
+
         policy = load_policy()
         eligible = mastery.eligible_attempts
         correct = mastery.correct_attempts

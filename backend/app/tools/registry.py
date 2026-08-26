@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 
 from backend.app.auth.context import CallerContext
 from backend.app.auth.permissions import PermissionDenied, require_job_access, require_read_student
-from backend.app.db.models import AgentJob, AuditEvent, MasteryEvidence, MasteryState, Student
-from backend.app.services.mastery import get_eligible_attempts
+from backend.app.db.models import AgentJob, AuditEvent, MasteryEvidence, Student, TutorEvidenceExclusion
+from backend.app.services.mastery import get_effective_mastery, get_eligible_attempts
 from backend.app.tools.contracts import (
     GetAttemptEvidenceRequest,
     GetAttemptEvidenceResponse,
@@ -97,6 +97,18 @@ def get_attempt_evidence(
         MasteryEvidence.centre_id == caller.centre_id,
         MasteryEvidence.subskill_id == subskill_id,
     )
+    excluded_ids = {
+        evidence_id
+        for (evidence_id,) in db.query(TutorEvidenceExclusion.evidence_id)
+        .filter(
+            TutorEvidenceExclusion.student_id == req.student_id,
+            TutorEvidenceExclusion.subskill_id == subskill_id,
+            TutorEvidenceExclusion.centre_id == caller.centre_id,
+        )
+        .all()
+    }
+    if excluded_ids:
+        evidence_query = evidence_query.filter(MasteryEvidence.id.notin_(excluded_ids))
     if req.attempt_id:
         evidence_query = evidence_query.filter(MasteryEvidence.attempt_id == req.attempt_id)
     evidence = evidence_query.order_by(MasteryEvidence.created_at.asc()).limit(100).all()
@@ -106,13 +118,14 @@ def get_attempt_evidence(
         "tool.get_attempt_evidence",
         "student",
         req.student_id,
-        after={"subskill": subskill_id, "attempt_id": req.attempt_id},
+        after={"subskill": subskill_id, "attempt_id": req.attempt_id, "excluded_evidence_ids": sorted(excluded_ids)},
     )
     return GetAttemptEvidenceResponse(
         evidence_ids=[item.id for item in evidence],
         attempt_ids=[attempt.id for attempt in attempts],
         eligible_attempts=eligible,
         correct_attempts=correct,
+        excluded_evidence_ids=sorted(excluded_ids),
     )
 
 
@@ -122,16 +135,7 @@ def get_mastery_state(
     req: GetMasteryStateRequest,
 ) -> GetMasteryStateResponse:
     require_read_student(db, caller, req.student_id)
-    state = (
-        db.query(MasteryState)
-        .filter(
-            MasteryState.student_id == req.student_id,
-            MasteryState.centre_id == caller.centre_id,
-            MasteryState.subskill_id == req.subskill_id,
-        )
-        .order_by(MasteryState.version.desc())
-        .first()
-    )
+    state = get_effective_mastery(db, req.student_id, req.subskill_id)
     if not state:
         raise PermissionDenied("mastery not found")
     _audit(db, caller, "tool.get_mastery_state", "mastery_state", state.id)
