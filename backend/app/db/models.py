@@ -92,15 +92,84 @@ class Question(Base):
     selection_rank: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
+
+class AssessmentDraft(Base):
+    __tablename__ = "assessment_drafts"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    centre_id: Mapped[str] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id: Mapped[str] = mapped_column(String(64), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    class_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("classes.id", ondelete="SET NULL"), nullable=True, index=True)
+    subskill_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    selection_policy_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    selection_policy_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    policy_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    policy_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    mastery_state_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    question_ids_json: Mapped[str] = mapped_column(Text, nullable=False)
+    input_json: Mapped[str] = mapped_column(Text, nullable=False)
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    reviewed_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    review_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+
+class AssessmentAssignment(Base):
+    __tablename__ = "assessment_assignments"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    draft_id: Mapped[str] = mapped_column(String(64), ForeignKey("assessment_drafts.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    centre_id: Mapped[str] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id: Mapped[str] = mapped_column(String(64), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    class_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("classes.id", ondelete="SET NULL"), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)  # assigned|active|closed
+    assigned_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
+    assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class PracticeSession(Base):
+    __tablename__ = "practice_sessions"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    assignment_id: Mapped[str] = mapped_column(String(64), ForeignKey("assessment_assignments.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    centre_id: Mapped[str] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id: Mapped[str] = mapped_column(String(64), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)  # active|completed|abandoned
+    current_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class PracticeHint(Base):
+    __tablename__ = "practice_hints"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(64), ForeignKey("practice_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
+    assignment_id: Mapped[str] = mapped_column(String(64), ForeignKey("assessment_assignments.id", ondelete="CASCADE"), nullable=False, index=True)
+    centre_id: Mapped[str] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id: Mapped[str] = mapped_column(String(64), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    question_id: Mapped[str] = mapped_column(String(64), ForeignKey("questions.id", ondelete="RESTRICT"), nullable=False, index=True)
+    level: Mapped[int] = mapped_column(Integer, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    source_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    __table_args__ = (UniqueConstraint("session_id", "question_id", "level", name="uq_practice_hint_session_question_level"),)
+
+
 class Attempt(Base):
     __tablename__ = "attempts"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     centre_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=True, index=True)
     student_id: Mapped[str] = mapped_column(String(64), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
     question_id: Mapped[str] = mapped_column(String(64), ForeignKey("questions.id", ondelete="RESTRICT"), nullable=False, index=True)
+    assignment_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("assessment_assignments.id", ondelete="SET NULL"), nullable=True, index=True)
+    practice_session_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("practice_sessions.id", ondelete="SET NULL"), nullable=True, index=True)
     submitted_answer: Mapped[str] = mapped_column(String(255), nullable=False)
     grading_status: Mapped[str] = mapped_column(String(32), nullable=False)  # graded
     is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    hint_level: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     # Immutability is enforced at service layer; DB does not allow UPDATE via app code.
 
