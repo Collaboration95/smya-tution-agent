@@ -335,9 +335,51 @@ class ParentReportDraft(Base):
     snapshot_ids_json: Mapped[str] = mapped_column(Text, nullable=False)
     evidence_ids_json: Mapped[str] = mapped_column(Text, nullable=False)
     content_json: Mapped[str] = mapped_column(Text, nullable=False)
-    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)  # pending_tutor_review|needs_tutor_review
+    status: Mapped[str] = mapped_column(
+        String(32), nullable=False, index=True
+    )  # draft|pending_tutor_review|approved|queued_for_delivery|delivered|rejected|blocked
+    approved_guardian_link_id: Mapped[str | None] = mapped_column(
+        String(64), ForeignKey("guardian_links.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    reviewed_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    review_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    approved_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    rejected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    blocked_reason: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    queued_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+
+class ParentReportDelivery(Base):
+    __tablename__ = "parent_report_deliveries"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    draft_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("parent_report_drafts.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    centre_id: Mapped[str] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id: Mapped[str] = mapped_column(String(64), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    guardian_link_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("guardian_links.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)  # queued_for_delivery|delivered|blocked
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    approved_content_json: Mapped[str] = mapped_column(Text, nullable=False)
+    approved_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    approved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    queued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    blocked_reason: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    provider_message_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+    __table_args__ = (
+        UniqueConstraint("draft_id", name="uq_parent_report_delivery_draft"),
+        UniqueConstraint("idempotency_key", name="uq_parent_report_delivery_idempotency"),
+        Index("ix_parent_report_deliveries_student_status", "student_id", "status"),
+    )
 
 
 @event.listens_for(Attempt, "before_update")
