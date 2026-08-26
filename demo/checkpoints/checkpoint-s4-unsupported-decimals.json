@@ -1,0 +1,116 @@
+{
+  "case_id": "S4-GOLDEN-UNSUPPORTED-DECIMALS",
+  "checkpoint_id": "checkpoint-s4-unsupported-decimals",
+  "expected": {
+    "allowed_actions": [
+      "get_student_snapshot",
+      "get_attempt_evidence",
+      "get_mastery_state",
+      "retrieve_approved_curriculum",
+      "tutor_review",
+      "keep_blocked"
+    ],
+    "allowed_sources": [],
+    "deterministic_state": {
+      "artifact_count": 0,
+      "job_status": "needs_tutor_review",
+      "label": "insufficient_evidence",
+      "model_call_required": false,
+      "review_reason": "unsupported_content"
+    },
+    "safe_outcome": {
+      "artifact_created": false,
+      "model_call_made": false,
+      "status": "needs_tutor_review",
+      "unsupported_content": true
+    }
+  },
+  "fallback": {
+    "artifact": null,
+    "disclaimer": null,
+    "fixture_id": null,
+    "label": null,
+    "source": null,
+    "used": false
+  },
+  "inputs": {
+    "centre_id": "CTR-SYNTH-NORTHSTAR",
+    "student_id": "STU-SYNTH-A",
+    "subskill_id": "DECIMALS",
+    "trigger": "manual_request"
+  },
+  "observed": {
+    "alerts": [
+      {
+        "status": "open",
+        "type": "unsupported"
+      }
+    ],
+    "artifacts": [],
+    "job_status": "needs_tutor_review",
+    "mastery": {
+      "accuracy": 0.0,
+      "confidence": 0.2,
+      "correct_attempts": 0,
+      "eligible_attempts": 0,
+      "is_override": false,
+      "label": "insufficient_evidence"
+    },
+    "model_call_made": false,
+    "provenance": {
+      "actual_runtime": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "duration_ms": 15,
+          "error_code": "unsupported_content",
+          "model_id": "fake-diagnostic-v1",
+          "provider": "fake",
+          "run_id": "run-af504b36",
+          "status": "needs_tutor_review"
+        }
+      ],
+      "job_id": "job-15e052e3",
+      "model_id": "fake-diagnostic-v1",
+      "provider": "fake",
+      "tool_calls": [
+        "get_student_snapshot",
+        "get_attempt_evidence",
+        "get_mastery_state",
+        "retrieve_approved_curriculum"
+      ]
+    },
+    "result": {
+      "reason": "unsupported_content",
+      "status": "needs_tutor_review"
+    },
+    "retry_count": 0,
+    "source_ids": []
+  },
+  "provenance": {
+    "actual_runtime": true,
+    "attempts": [
+      {
+        "attempt": 1,
+        "duration_ms": 15,
+        "error_code": "unsupported_content",
+        "model_id": "fake-diagnostic-v1",
+        "provider": "fake",
+        "run_id": "run-af504b36",
+        "status": "needs_tutor_review"
+      }
+    ],
+    "job_id": "job-15e052e3",
+    "model_id": "fake-diagnostic-v1",
+    "provider": "fake",
+    "tool_calls": [
+      "get_student_snapshot",
+      "get_attempt_evidence",
+      "get_mastery_state",
+      "retrieve_approved_curriculum"
+    ]
+  },
+  "schema_version": "s4_checkpoint_v1",
+  "title": "Unsupported content stops before a model call",
+  "workflow": "diagnostic"
+}

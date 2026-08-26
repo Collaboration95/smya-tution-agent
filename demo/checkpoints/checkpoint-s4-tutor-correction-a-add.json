@@ -1,0 +1,180 @@
+{
+  "case_id": "S4-GOLDEN-TUTOR-CORRECTION-A-ADD",
+  "checkpoint_id": "checkpoint-s4-tutor-correction-a-add",
+  "expected": {
+    "allowed_actions": [
+      "get_student_snapshot",
+      "get_attempt_evidence",
+      "get_mastery_state",
+      "retrieve_approved_curriculum",
+      "model.generate_structured",
+      "tutor_review",
+      "edit",
+      "persist_override"
+    ],
+    "allowed_sources": [
+      "SRC-SYNTH-FRACTIONS-V1"
+    ],
+    "deterministic_state": {
+      "action": "edit",
+      "corrected_label": "developing",
+      "job_status": "succeeded",
+      "model_call_required": true,
+      "original_label": "requires_support",
+      "override": true
+    },
+    "safe_outcome": {
+      "automatic_delivery": false,
+      "effective_state_is_override": true,
+      "status": "edited"
+    }
+  },
+  "fallback": {
+    "artifact": null,
+    "disclaimer": null,
+    "fixture_id": null,
+    "label": null,
+    "source": null,
+    "used": false
+  },
+  "inputs": {
+    "centre_id": "CTR-SYNTH-NORTHSTAR",
+    "corrected_label": "developing",
+    "reason": "Tutor re-evaluated the conflicting evidence.",
+    "student_id": "STU-SYNTH-A",
+    "subskill_id": "FRC-ADD-SUB-UNLIKE",
+    "tutor_id": "TUT-SYNTH-ALPHA"
+  },
+  "observed": {
+    "alerts": [
+      {
+        "status": "open",
+        "type": "conflicting"
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "art-98fdc897",
+        "payload": {
+          "alternative_explanation": null,
+          "confidence": 0.8,
+          "evidence_ids": [
+            "EVD-SYNTH-A-ADD-001",
+            "EVD-SYNTH-A-ADD-002",
+            "EVD-SYNTH-A-ADD-003",
+            "EVD-SYNTH-A-ADD-004"
+          ],
+          "label": "requires_support",
+          "policy_id": "mastery_policy_v1",
+          "policy_version": "1.0.0",
+          "rationale": "Evidence ['EVD-SYNTH-A-ADD-001', 'EVD-SYNTH-A-ADD-002', 'EVD-SYNTH-A-ADD-003', 'EVD-SYNTH-A-ADD-004'] supports requires_support; policy version 1.0.0 was applied.",
+          "recommended_next_action": "collect_more_evidence",
+          "source_refs": [
+            "CHK-SYNTH-ADD-001"
+          ],
+          "status": "needs_more_evidence",
+          "student_id": "STU-SYNTH-A",
+          "subskill_id": "FRC-ADD-SUB-UNLIKE"
+        },
+        "type": "mastery_proposal",
+        "version": 1
+      }
+    ],
+    "corrected_label": "developing",
+    "correction_applied": true,
+    "correction_id": "corr-46510baf",
+    "effective_state_id": "mst-e48e6016",
+    "job_status": "succeeded",
+    "mastery": {
+      "accuracy": 0.25,
+      "confidence": 0.8,
+      "correct_attempts": 1,
+      "eligible_attempts": 4,
+      "is_override": false,
+      "label": "requires_support"
+    },
+    "model_call_made": true,
+    "original_label": "requires_support",
+    "override": true,
+    "provenance": {
+      "actual_runtime": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "duration_ms": 17,
+          "error_code": "conflicting_evidence",
+          "model_id": "fake-diagnostic-v1",
+          "provider": "fake",
+          "run_id": "run-2a0ff8db",
+          "status": "needs_tutor_review"
+        }
+      ],
+      "job_id": "job-dbf91619",
+      "model_id": "fake-diagnostic-v1",
+      "provider": "fake",
+      "tool_calls": [
+        "get_student_snapshot",
+        "get_attempt_evidence",
+        "get_mastery_state",
+        "retrieve_approved_curriculum",
+        "model.generate_structured"
+      ]
+    },
+    "result": {
+      "artifact_id": "art-98fdc897",
+      "proposal": {
+        "alternative_explanation": null,
+        "confidence": 0.8,
+        "evidence_ids": [
+          "EVD-SYNTH-A-ADD-001",
+          "EVD-SYNTH-A-ADD-002",
+          "EVD-SYNTH-A-ADD-003",
+          "EVD-SYNTH-A-ADD-004"
+        ],
+        "label": "requires_support",
+        "policy_id": "mastery_policy_v1",
+        "policy_version": "1.0.0",
+        "rationale": "Evidence ['EVD-SYNTH-A-ADD-001', 'EVD-SYNTH-A-ADD-002', 'EVD-SYNTH-A-ADD-003', 'EVD-SYNTH-A-ADD-004'] supports requires_support; policy version 1.0.0 was applied.",
+        "recommended_next_action": "collect_more_evidence",
+        "source_refs": [
+          "CHK-SYNTH-ADD-001"
+        ],
+        "status": "needs_more_evidence",
+        "student_id": "STU-SYNTH-A",
+        "subskill_id": "FRC-ADD-SUB-UNLIKE"
+      },
+      "status": "needs_tutor_review"
+    },
+    "retry_count": 0,
+    "source_ids": [
+      "SRC-SYNTH-FRACTIONS-V1"
+    ]
+  },
+  "provenance": {
+    "actual_runtime": true,
+    "attempts": [
+      {
+        "attempt": 1,
+        "duration_ms": 17,
+        "error_code": "conflicting_evidence",
+        "model_id": "fake-diagnostic-v1",
+        "provider": "fake",
+        "run_id": "run-2a0ff8db",
+        "status": "needs_tutor_review"
+      }
+    ],
+    "job_id": "job-dbf91619",
+    "model_id": "fake-diagnostic-v1",
+    "provider": "fake",
+    "tool_calls": [
+      "get_student_snapshot",
+      "get_attempt_evidence",
+      "get_mastery_state",
+      "retrieve_approved_curriculum",
+      "model.generate_structured"
+    ]
+  },
+  "schema_version": "s4_checkpoint_v1",
+  "title": "Tutor correction creates a versioned effective override",
+  "workflow": "correction"
+}

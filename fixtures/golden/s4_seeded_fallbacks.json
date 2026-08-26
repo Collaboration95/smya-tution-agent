@@ -1,0 +1,55 @@
+{
+  "schema_version": "s4_seeded_fallbacks_v1",
+  "fallbacks": {
+    "S4-FALLBACK-DIAGNOSTIC-A-ADD": {
+      "fixture_id": "ART-SYNTH-MASTERY-A-ADD",
+      "artifact_type": "mastery_proposal",
+      "status": "pending_tutor_review",
+      "source": "fixtures/seed/synthetic_centre_v1.json#artifacts",
+      "payload": {
+        "student_id": "STU-SYNTH-A",
+        "subskill_id": "FRC-ADD-SUB-UNLIKE",
+        "label": "requires_support",
+        "review_required": true
+      }
+    },
+    "S4-FALLBACK-DIAGNOSTIC-A-MULT-LOW-EVIDENCE": {
+      "fixture_id": "S4-GOLDEN-DIAGNOSTIC-A-MULT-LOW-EVIDENCE",
+      "artifact_type": "mastery_proposal",
+      "status": "pending_tutor_review",
+      "source": "fixtures/seed/synthetic_centre_v1.json#golden_expectations",
+      "payload": {
+        "student_id": "STU-SYNTH-A",
+        "subskill_id": "FRC-MULTIPLY-WHOLE",
+        "label": "insufficient_evidence",
+        "next_action": "collect_more_evidence",
+        "review_required": true
+      }
+    },
+    "S4-FALLBACK-TUTOR-CORRECTION-A-ADD": {
+      "fixture_id": "ART-SYNTH-MASTERY-A-ADD",
+      "artifact_type": "mastery_proposal",
+      "status": "pending_tutor_review",
+      "source": "fixtures/seed/synthetic_centre_v1.json#artifacts",
+      "payload": {
+        "student_id": "STU-SYNTH-A",
+        "subskill_id": "FRC-ADD-SUB-UNLIKE",
+        "label": "requires_support",
+        "correction_applied": false,
+        "next_action": "tutor_review"
+      }
+    },
+    "S4-FALLBACK-PARENT-PERIOD-A-ADD": {
+      "fixture_id": "S4-GOLDEN-PARENT-PERIOD-A-ADD",
+      "artifact_type": "parent_report_draft",
+      "status": "pending_tutor_review",
+      "source": "fixtures/seed/synthetic_centre_v1.json#golden_expectations",
+      "payload": {
+        "student_id": "STU-SYNTH-A",
+        "progress_signal": "improved",
+        "guardian_delivery": false,
+        "review_required": true
+      }
+    }
+  }
+}

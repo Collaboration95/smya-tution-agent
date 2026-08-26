@@ -1,0 +1,23 @@
+{
+  "case_ids": [
+    "S4-GOLDEN-DIAGNOSTIC-A-ADD",
+    "S4-GOLDEN-DIAGNOSTIC-A-MULT-LOW-EVIDENCE",
+    "S4-GOLDEN-DENIED-GUARDIAN-B-REPORT",
+    "S4-GOLDEN-UNSUPPORTED-DECIMALS",
+    "S4-GOLDEN-DIVERGENCE-A-B-ASSESSMENT",
+    "S4-GOLDEN-TUTOR-CORRECTION-A-ADD",
+    "S4-GOLDEN-PARENT-PERIOD-A-ADD"
+  ],
+  "checkpoint_ids": [
+    "checkpoint-s4-diagnostic-a-add",
+    "checkpoint-s4-diagnostic-a-mult-low-evidence",
+    "checkpoint-s4-denied-guardian-b-report",
+    "checkpoint-s4-unsupported-decimals",
+    "checkpoint-s4-divergence-a-b-assessment",
+    "checkpoint-s4-tutor-correction-a-add",
+    "checkpoint-s4-parent-period-a-add"
+  ],
+  "disclaimer": "Fake-provider replay; no live provider claim.",
+  "provider_mode": "fake",
+  "schema_version": "s4_checkpoint_v1"
+}

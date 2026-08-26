@@ -1,0 +1,173 @@
+{
+  "case_id": "S4-GOLDEN-PARENT-PERIOD-A-ADD",
+  "checkpoint_id": "checkpoint-s4-parent-period-a-add",
+  "expected": {
+    "allowed_actions": [
+      "get_mastery_history",
+      "model.generate_structured",
+      "tutor_approval"
+    ],
+    "allowed_sources": [
+      "SRC-SYNTH-FRACTIONS-V1"
+    ],
+    "deterministic_state": {
+      "artifact_type": "parent_report_draft",
+      "current_label": "developing",
+      "draft_status": "pending_tutor_review",
+      "job_status": "needs_tutor_review",
+      "model_call_required": true,
+      "previous_label": "requires_support",
+      "progress_signal": "improved"
+    },
+    "safe_outcome": {
+      "guardian_delivery": false,
+      "raw_chat_included": false,
+      "status": "pending_tutor_review"
+    }
+  },
+  "fallback": {
+    "artifact": null,
+    "disclaimer": null,
+    "fixture_id": null,
+    "label": null,
+    "source": null,
+    "used": false
+  },
+  "inputs": {
+    "centre_id": "CTR-SYNTH-NORTHSTAR",
+    "period_definition": {
+      "anchor": "earliest_seeded_evidence",
+      "current_end_offset_days": 2,
+      "current_start_offset_hours": 2,
+      "previous_end_offset_hours": 1,
+      "previous_start_offset_days": -1
+    },
+    "student_id": "STU-SYNTH-A",
+    "subskill_ids": [
+      "FRC-ADD-SUB-UNLIKE"
+    ],
+    "trigger": "manual_request"
+  },
+  "observed": {
+    "artifacts": [
+      {
+        "id": "art-ead16cc2",
+        "payload": {
+          "comparison": {
+            "current_period": {
+              "end": "2026-08-28T04:51:46.021324Z",
+              "start": "2026-08-26T06:51:46.021324Z"
+            },
+            "previous_period": {
+              "end": "2026-08-26T05:51:46.021324Z",
+              "start": "2026-08-25T04:51:46.021324Z"
+            },
+            "subskills": [
+              {
+                "current_accuracy": 0.5,
+                "current_label": "developing",
+                "current_snapshot_id": "mst-STU-SYNTH-A-FRC-ADD-SUB-UNLIKE-v1-0208c4",
+                "previous_accuracy": 0.25,
+                "previous_label": "requires_support",
+                "previous_snapshot_id": "mst-s4-parent-previous",
+                "subskill_id": "FRC-ADD-SUB-UNLIKE"
+              }
+            ]
+          },
+          "evidence_ids": [
+            "EVD-SYNTH-A-ADD-001",
+            "EVD-SYNTH-A-ADD-002",
+            "EVD-SYNTH-A-ADD-003",
+            "EVD-SYNTH-A-ADD-004"
+          ],
+          "headline": "Progress is improving across the selected comparison periods.",
+          "next_steps": [
+            "Continue focused practice on the core skill.",
+            "Continue the current practice routine and review the next update."
+          ],
+          "progress_signal": "improved",
+          "schema_version": "parent_report_v1",
+          "snapshot_ids": [
+            "mst-s4-parent-previous",
+            "mst-STU-SYNTH-A-FRC-ADD-SUB-UNLIKE-v1-0208c4"
+          ],
+          "status": "pending_tutor_review",
+          "student_id": "STU-SYNTH-A"
+        },
+        "type": "parent_report_draft",
+        "version": 1
+      }
+    ],
+    "current_label": "developing",
+    "draft_status": "pending_tutor_review",
+    "job_status": "needs_tutor_review",
+    "model_call_made": true,
+    "periods": {
+      "current_period": {
+        "end": "2026-08-28T04:51:46.021324+00:00",
+        "start": "2026-08-26T06:51:46.021324+00:00"
+      },
+      "previous_period": {
+        "end": "2026-08-26T05:51:46.021324+00:00",
+        "start": "2026-08-25T04:51:46.021324+00:00"
+      }
+    },
+    "previous_label": "requires_support",
+    "progress_signal": "improved",
+    "provenance": {
+      "actual_runtime": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "duration_ms": 9,
+          "error_code": "parent_report_requires_tutor_review",
+          "model_id": "fake-diagnostic-v1",
+          "provider": "fake",
+          "run_id": "run-39c6f4c0",
+          "status": "needs_tutor_review"
+        }
+      ],
+      "job_id": "job-c75d4ea5",
+      "model_id": "fake-diagnostic-v1",
+      "provider": "fake",
+      "tool_calls": [
+        "get_mastery_history",
+        "model.generate_structured"
+      ]
+    },
+    "result": {
+      "artifact_id": "art-ead16cc2",
+      "draft_id": "report-draft-478369a7",
+      "job_id": "job-c75d4ea5",
+      "progress_signal": "improved",
+      "status": "needs_tutor_review"
+    },
+    "source_ids": [
+      "SRC-SYNTH-FRACTIONS-V1"
+    ]
+  },
+  "provenance": {
+    "actual_runtime": true,
+    "attempts": [
+      {
+        "attempt": 1,
+        "duration_ms": 9,
+        "error_code": "parent_report_requires_tutor_review",
+        "model_id": "fake-diagnostic-v1",
+        "provider": "fake",
+        "run_id": "run-39c6f4c0",
+        "status": "needs_tutor_review"
+      }
+    ],
+    "job_id": "job-c75d4ea5",
+    "model_id": "fake-diagnostic-v1",
+    "provider": "fake",
+    "tool_calls": [
+      "get_mastery_history",
+      "model.generate_structured"
+    ]
+  },
+  "schema_version": "s4_checkpoint_v1",
+  "title": "Parent progress is grounded in selected history periods",
+  "workflow": "parent_report"
+}
