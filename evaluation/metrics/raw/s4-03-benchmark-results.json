@@ -1,0 +1,479 @@
+{
+  "benchmark_id": "S4-03-SCRIPTED-PROXY-V1",
+  "cost_policy": {
+    "fake_model_cost_usd": 0.0,
+    "infrastructure_cost_usd": null,
+    "model_provider": "fake",
+    "unavailable_cost_is_not_inferred": true
+  },
+  "data_scope": "synthetic seeded centre only",
+  "generated_at": "2026-08-26T13:17:16.983288+08:00",
+  "limitations": [
+    "The participant is a scripted engineering proxy, not a tutor or centre operator.",
+    "Manual baseline timing measures the typed-selection service path, not human wall-clock work.",
+    "The fake provider reports zero model cost; no live provider or hosting cost is measured.",
+    "Results are synthetic repeatability evidence, not validated tutor outcomes, ROI, or market pricing."
+  ],
+  "measurement_policy": {
+    "assisted_processing": "deterministic selector or fake-model worker path",
+    "clock": "python.perf_counter",
+    "manual_baseline": "typed human-selection service path with five approved question ids",
+    "rounding": "six decimal places",
+    "timed_scope": "workflow operations only; database seeding is excluded",
+    "tutor_review_edit": "approval/edit service path executed by a seeded tutor identity"
+  },
+  "participant_type": "scripted_engineering_proxy",
+  "schema_version": "s4_benchmark_results_v1",
+  "tasks": [
+    {
+      "runs": [
+        {
+          "assisted_material": {
+            "final_drafts": {
+              "STU-SYNTH-A": {
+                "assignment_id": null,
+                "question_ids": [
+                  "Q-FRC-ADD-001",
+                  "Q-FRC-ADD-005",
+                  "Q-FRC-ADD-002",
+                  "Q-FRC-ADD-003",
+                  "Q-FRC-ADD-006"
+                ],
+                "status": "approved"
+              },
+              "STU-SYNTH-B": {
+                "assignment_id": null,
+                "question_ids": [
+                  "Q-FRC-ADD-006",
+                  "Q-FRC-ADD-004",
+                  "Q-FRC-ADD-002",
+                  "Q-FRC-ADD-003",
+                  "Q-FRC-ADD-001"
+                ],
+                "status": "approved"
+              }
+            },
+            "initial_selections": {
+              "STU-SYNTH-A": [
+                "Q-FRC-ADD-001",
+                "Q-FRC-ADD-005"
+              ],
+              "STU-SYNTH-B": [
+                "Q-FRC-ADD-006",
+                "Q-FRC-ADD-004"
+              ]
+            },
+            "students_diverge": true
+          },
+          "assisted_processing_seconds": 0.008928,
+          "infrastructure_cost_usd": null,
+          "manual_baseline_seconds": 0.013288,
+          "manual_material": {
+            "drafts": {
+              "STU-SYNTH-A": {
+                "assignment_id": null,
+                "question_ids": [
+                  "Q-FRC-ADD-001",
+                  "Q-FRC-ADD-005",
+                  "Q-FRC-ADD-002",
+                  "Q-FRC-ADD-003",
+                  "Q-FRC-ADD-006"
+                ],
+                "status": "approved"
+              },
+              "STU-SYNTH-B": {
+                "assignment_id": null,
+                "question_ids": [
+                  "Q-FRC-ADD-006",
+                  "Q-FRC-ADD-004",
+                  "Q-FRC-ADD-002",
+                  "Q-FRC-ADD-003",
+                  "Q-FRC-ADD-001"
+                ],
+                "status": "approved"
+              }
+            },
+            "model_cost_usd": null,
+            "provider": null
+          },
+          "model_cost_usd": null,
+          "net_time_saved_seconds": -0.005147,
+          "participant_type": "scripted_engineering_proxy",
+          "provider_provenance": {
+            "model_id": null,
+            "provider": null,
+            "run_ids": []
+          },
+          "run_index": 1,
+          "total_assisted_seconds": 0.018435,
+          "tutor_review_edit_seconds": 0.009507
+        },
+        {
+          "assisted_material": {
+            "final_drafts": {
+              "STU-SYNTH-A": {
+                "assignment_id": null,
+                "question_ids": [
+                  "Q-FRC-ADD-001",
+                  "Q-FRC-ADD-005",
+                  "Q-FRC-ADD-002",
+                  "Q-FRC-ADD-003",
+                  "Q-FRC-ADD-006"
+                ],
+                "status": "approved"
+              },
+              "STU-SYNTH-B": {
+                "assignment_id": null,
+                "question_ids": [
+                  "Q-FRC-ADD-006",
+                  "Q-FRC-ADD-004",
+                  "Q-FRC-ADD-002",
+                  "Q-FRC-ADD-003",
+                  "Q-FRC-ADD-001"
+                ],
+                "status": "approved"
+              }
+            },
+            "initial_selections": {
+              "STU-SYNTH-A": [
+                "Q-FRC-ADD-001",
+                "Q-FRC-ADD-005"
+              ],
+              "STU-SYNTH-B": [
+                "Q-FRC-ADD-006",
+                "Q-FRC-ADD-004"
+              ]
+            },
+            "students_diverge": true
+          },
+          "assisted_processing_seconds": 0.008812,
+          "infrastructure_cost_usd": null,
+          "manual_baseline_seconds": 0.013126,
+          "manual_material": {
+            "drafts": {
+              "STU-SYNTH-A": {
+                "assignment_id": null,
+                "question_ids": [
+                  "Q-FRC-ADD-001",
+                  "Q-FRC-ADD-005",
+                  "Q-FRC-ADD-002",
+                  "Q-FRC-ADD-003",
+                  "Q-FRC-ADD-006"
+                ],
+                "status": "approved"
+              },
+              "STU-SYNTH-B": {
+                "assignment_id": null,
+                "question_ids": [
+                  "Q-FRC-ADD-006",
+                  "Q-FRC-ADD-004",
+                  "Q-FRC-ADD-002",
+                  "Q-FRC-ADD-003",
+                  "Q-FRC-ADD-001"
+                ],
+                "status": "approved"
+              }
+            },
+            "model_cost_usd": null,
+            "provider": null
+          },
+          "model_cost_usd": null,
+          "net_time_saved_seconds": -0.009482,
+          "participant_type": "scripted_engineering_proxy",
+          "provider_provenance": {
+            "model_id": null,
+            "provider": null,
+            "run_ids": []
+          },
+          "run_index": 2,
+          "total_assisted_seconds": 0.022608,
+          "tutor_review_edit_seconds": 0.013796
+        },
+        {
+          "assisted_material": {
+            "final_drafts": {
+              "STU-SYNTH-A": {
+                "assignment_id": null,
+                "question_ids": [
+                  "Q-FRC-ADD-001",
+                  "Q-FRC-ADD-005",
+                  "Q-FRC-ADD-002",
+                  "Q-FRC-ADD-003",
+                  "Q-FRC-ADD-006"
+                ],
+                "status": "approved"
+              },
+              "STU-SYNTH-B": {
+                "assignment_id": null,
+                "question_ids": [
+                  "Q-FRC-ADD-006",
+                  "Q-FRC-ADD-004",
+                  "Q-FRC-ADD-002",
+                  "Q-FRC-ADD-003",
+                  "Q-FRC-ADD-001"
+                ],
+                "status": "approved"
+              }
+            },
+            "initial_selections": {
+              "STU-SYNTH-A": [
+                "Q-FRC-ADD-001",
+                "Q-FRC-ADD-005"
+              ],
+              "STU-SYNTH-B": [
+                "Q-FRC-ADD-006",
+                "Q-FRC-ADD-004"
+              ]
+            },
+            "students_diverge": true
+          },
+          "assisted_processing_seconds": 0.008751,
+          "infrastructure_cost_usd": null,
+          "manual_baseline_seconds": 0.013367,
+          "manual_material": {
+            "drafts": {
+              "STU-SYNTH-A": {
+                "assignment_id": null,
+                "question_ids": [
+                  "Q-FRC-ADD-001",
+                  "Q-FRC-ADD-005",
+                  "Q-FRC-ADD-002",
+                  "Q-FRC-ADD-003",
+                  "Q-FRC-ADD-006"
+                ],
+                "status": "approved"
+              },
+              "STU-SYNTH-B": {
+                "assignment_id": null,
+                "question_ids": [
+                  "Q-FRC-ADD-006",
+                  "Q-FRC-ADD-004",
+                  "Q-FRC-ADD-002",
+                  "Q-FRC-ADD-003",
+                  "Q-FRC-ADD-001"
+                ],
+                "status": "approved"
+              }
+            },
+            "model_cost_usd": null,
+            "provider": null
+          },
+          "model_cost_usd": null,
+          "net_time_saved_seconds": -0.004858,
+          "participant_type": "scripted_engineering_proxy",
+          "provider_provenance": {
+            "model_id": null,
+            "provider": null,
+            "run_ids": []
+          },
+          "run_index": 3,
+          "total_assisted_seconds": 0.018225,
+          "tutor_review_edit_seconds": 0.009474
+        }
+      ],
+      "summary": {
+        "assisted_processing_seconds_mean": 0.00883,
+        "infrastructure_cost_usd": null,
+        "limitations": [
+          "This is a scripted engineering proxy, not a tutor timing study.",
+          "Synthetic in-memory database timings do not represent production latency.",
+          "Fake-provider cost is zero; live model and hosting costs are not measured."
+        ],
+        "manual_baseline_seconds_mean": 0.01326,
+        "model_cost_usd_total": null,
+        "name": "Create five-item differentiated practice for Students A and B",
+        "net_time_saved_seconds_mean": -0.006496,
+        "participant_type": "scripted_engineering_proxy",
+        "repeats": 3,
+        "task_id": "differentiated_practice_five_items",
+        "total_assisted_seconds_mean": 0.019756,
+        "tutor_review_edit_seconds_mean": 0.010926
+      },
+      "task": {
+        "assisted_initial_item_count": 2,
+        "centre_id": "CTR-SYNTH-NORTHSTAR",
+        "expected_material_changes": {
+          "assignment_created": false,
+          "final_item_count_per_student": 5,
+          "students_diverge": true
+        },
+        "item_count": 5,
+        "manual_question_ids": {
+          "STU-SYNTH-A": [
+            "Q-FRC-ADD-001",
+            "Q-FRC-ADD-005",
+            "Q-FRC-ADD-002",
+            "Q-FRC-ADD-003",
+            "Q-FRC-ADD-006"
+          ],
+          "STU-SYNTH-B": [
+            "Q-FRC-ADD-006",
+            "Q-FRC-ADD-004",
+            "Q-FRC-ADD-002",
+            "Q-FRC-ADD-003",
+            "Q-FRC-ADD-001"
+          ]
+        },
+        "name": "Create five-item differentiated practice for Students A and B",
+        "student_ids": [
+          "STU-SYNTH-A",
+          "STU-SYNTH-B"
+        ],
+        "subskill_id": "FRC-ADD-SUB-UNLIKE",
+        "task_id": "differentiated_practice_five_items",
+        "workflow": "assessment"
+      }
+    },
+    {
+      "runs": [
+        {
+          "assisted_material": {
+            "artifact_id": "art-60d66655",
+            "draft_id": "report-draft-f1f286f5",
+            "draft_status_after_review": "approved",
+            "draft_status_before_review": "pending_tutor_review",
+            "guardian_delivery": false,
+            "progress_signal": "improved",
+            "result_status": "needs_tutor_review"
+          },
+          "assisted_processing_seconds": 0.026597,
+          "infrastructure_cost_usd": null,
+          "manual_baseline_seconds": 0.004398,
+          "manual_material": {
+            "content": {
+              "current_snapshot_id": "mst-STU-SYNTH-A-FRC-ADD-SUB-UNLIKE-v1-1d1ce3",
+              "next_step": "Continue focused practice on the core skill.",
+              "previous_snapshot_id": "mst-s4-parent-previous",
+              "progress_signal": "improved",
+              "student_id": "STU-SYNTH-A"
+            },
+            "model_cost_usd": null,
+            "provider": null
+          },
+          "model_cost_usd": 0.0,
+          "net_time_saved_seconds": -0.026082,
+          "participant_type": "scripted_engineering_proxy",
+          "provider_provenance": {
+            "model_id": "fake-diagnostic-v1",
+            "provider": "fake",
+            "run_ids": [
+              "run-77ace105"
+            ]
+          },
+          "run_index": 1,
+          "total_assisted_seconds": 0.03048,
+          "tutor_review_edit_seconds": 0.003883
+        },
+        {
+          "assisted_material": {
+            "artifact_id": "art-3d476339",
+            "draft_id": "report-draft-ee9c038e",
+            "draft_status_after_review": "approved",
+            "draft_status_before_review": "pending_tutor_review",
+            "guardian_delivery": false,
+            "progress_signal": "improved",
+            "result_status": "needs_tutor_review"
+          },
+          "assisted_processing_seconds": 0.024271,
+          "infrastructure_cost_usd": null,
+          "manual_baseline_seconds": 0.004348,
+          "manual_material": {
+            "content": {
+              "current_snapshot_id": "mst-STU-SYNTH-A-FRC-ADD-SUB-UNLIKE-v1-88e15a",
+              "next_step": "Continue focused practice on the core skill.",
+              "previous_snapshot_id": "mst-s4-parent-previous",
+              "progress_signal": "improved",
+              "student_id": "STU-SYNTH-A"
+            },
+            "model_cost_usd": null,
+            "provider": null
+          },
+          "model_cost_usd": 0.0,
+          "net_time_saved_seconds": -0.023875,
+          "participant_type": "scripted_engineering_proxy",
+          "provider_provenance": {
+            "model_id": "fake-diagnostic-v1",
+            "provider": "fake",
+            "run_ids": [
+              "run-7c7968e1"
+            ]
+          },
+          "run_index": 2,
+          "total_assisted_seconds": 0.028223,
+          "tutor_review_edit_seconds": 0.003952
+        },
+        {
+          "assisted_material": {
+            "artifact_id": "art-3945583b",
+            "draft_id": "report-draft-3603977a",
+            "draft_status_after_review": "approved",
+            "draft_status_before_review": "pending_tutor_review",
+            "guardian_delivery": false,
+            "progress_signal": "improved",
+            "result_status": "needs_tutor_review"
+          },
+          "assisted_processing_seconds": 0.019912,
+          "infrastructure_cost_usd": null,
+          "manual_baseline_seconds": 0.003995,
+          "manual_material": {
+            "content": {
+              "current_snapshot_id": "mst-STU-SYNTH-A-FRC-ADD-SUB-UNLIKE-v1-6737ad",
+              "next_step": "Continue focused practice on the core skill.",
+              "previous_snapshot_id": "mst-s4-parent-previous",
+              "progress_signal": "improved",
+              "student_id": "STU-SYNTH-A"
+            },
+            "model_cost_usd": null,
+            "provider": null
+          },
+          "model_cost_usd": 0.0,
+          "net_time_saved_seconds": -0.019543,
+          "participant_type": "scripted_engineering_proxy",
+          "provider_provenance": {
+            "model_id": "fake-diagnostic-v1",
+            "provider": "fake",
+            "run_ids": [
+              "run-10af317f"
+            ]
+          },
+          "run_index": 3,
+          "total_assisted_seconds": 0.023538,
+          "tutor_review_edit_seconds": 0.003626
+        }
+      ],
+      "summary": {
+        "assisted_processing_seconds_mean": 0.023593,
+        "infrastructure_cost_usd": null,
+        "limitations": [
+          "This is a scripted engineering proxy, not a tutor timing study.",
+          "Synthetic in-memory database timings do not represent production latency.",
+          "Fake-provider cost is zero; live model and hosting costs are not measured."
+        ],
+        "manual_baseline_seconds_mean": 0.004247,
+        "model_cost_usd_total": 0.0,
+        "name": "Draft a parent progress update from selected history",
+        "net_time_saved_seconds_mean": -0.023167,
+        "participant_type": "scripted_engineering_proxy",
+        "repeats": 3,
+        "task_id": "parent_progress_draft",
+        "total_assisted_seconds_mean": 0.027414,
+        "tutor_review_edit_seconds_mean": 0.00382
+      },
+      "task": {
+        "centre_id": "CTR-SYNTH-NORTHSTAR",
+        "expected_material_changes": {
+          "draft_requires_tutor_review": true,
+          "guardian_delivery": false,
+          "progress_signal": "improved"
+        },
+        "name": "Draft a parent progress update from selected history",
+        "student_id": "STU-SYNTH-A",
+        "subskill_ids": [
+          "FRC-ADD-SUB-UNLIKE"
+        ],
+        "task_id": "parent_progress_draft",
+        "workflow": "parent_report"
+      }
+    }
+  ]
+}

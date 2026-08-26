@@ -1,0 +1,73 @@
+{
+  "schema_version": "s4_benchmark_inputs_v1",
+  "benchmark_id": "S4-03-SCRIPTED-PROXY-V1",
+  "participant_type": "scripted_engineering_proxy",
+  "data_scope": "synthetic seeded centre only",
+  "repeats": 3,
+  "measurement_policy": {
+    "clock": "python.perf_counter",
+    "timed_scope": "workflow operations only; database seeding is excluded",
+    "manual_baseline": "typed human-selection service path with five approved question ids",
+    "assisted_processing": "deterministic selector or fake-model worker path",
+    "tutor_review_edit": "approval/edit service path executed by a seeded tutor identity",
+    "rounding": "six decimal places"
+  },
+  "tasks": [
+    {
+      "task_id": "differentiated_practice_five_items",
+      "name": "Create five-item differentiated practice for Students A and B",
+      "workflow": "assessment",
+      "centre_id": "CTR-SYNTH-NORTHSTAR",
+      "student_ids": ["STU-SYNTH-A", "STU-SYNTH-B"],
+      "subskill_id": "FRC-ADD-SUB-UNLIKE",
+      "item_count": 5,
+      "assisted_initial_item_count": 2,
+      "manual_question_ids": {
+        "STU-SYNTH-A": [
+          "Q-FRC-ADD-001",
+          "Q-FRC-ADD-005",
+          "Q-FRC-ADD-002",
+          "Q-FRC-ADD-003",
+          "Q-FRC-ADD-006"
+        ],
+        "STU-SYNTH-B": [
+          "Q-FRC-ADD-006",
+          "Q-FRC-ADD-004",
+          "Q-FRC-ADD-002",
+          "Q-FRC-ADD-003",
+          "Q-FRC-ADD-001"
+        ]
+      },
+      "expected_material_changes": {
+        "final_item_count_per_student": 5,
+        "students_diverge": true,
+        "assignment_created": false
+      }
+    },
+    {
+      "task_id": "parent_progress_draft",
+      "name": "Draft a parent progress update from selected history",
+      "workflow": "parent_report",
+      "centre_id": "CTR-SYNTH-NORTHSTAR",
+      "student_id": "STU-SYNTH-A",
+      "subskill_ids": ["FRC-ADD-SUB-UNLIKE"],
+      "expected_material_changes": {
+        "progress_signal": "improved",
+        "draft_requires_tutor_review": true,
+        "guardian_delivery": false
+      }
+    }
+  ],
+  "cost_policy": {
+    "model_provider": "fake",
+    "fake_model_cost_usd": 0.0,
+    "infrastructure_cost_usd": null,
+    "unavailable_cost_is_not_inferred": true
+  },
+  "limitations": [
+    "The participant is a scripted engineering proxy, not a tutor or centre operator.",
+    "Manual baseline timing measures the typed-selection service path, not human wall-clock work.",
+    "The fake provider reports zero model cost; no live provider or hosting cost is measured.",
+    "Results are synthetic repeatability evidence, not validated tutor outcomes, ROI, or market pricing."
+  ]
+}
