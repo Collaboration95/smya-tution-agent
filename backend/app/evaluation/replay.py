@@ -309,7 +309,7 @@ def _denial_case(db: Session, case: dict[str, Any]) -> tuple[dict[str, Any], dic
     return observation, provenance
 
 
-def _prepare_parent_history(db: Session) -> None:
+def prepare_parent_history(db: Session) -> None:
     anchor = (
         db.query(MasteryEvidence.created_at)
         .filter(
@@ -359,7 +359,7 @@ def _prepare_parent_history(db: Session) -> None:
     db.flush()
 
 
-def _parent_periods(db: Session) -> dict[str, dict[str, str]]:
+def parent_periods(db: Session) -> dict[str, dict[str, str]]:
     anchor = (
         db.query(MasteryEvidence.created_at)
         .filter(
@@ -386,8 +386,8 @@ def _parent_periods(db: Session) -> dict[str, dict[str, str]]:
 
 def _parent_case(db: Session, case: dict[str, Any], fail_provider: bool) -> tuple[dict[str, Any], dict[str, Any]]:
     facts = case["input_facts"]
-    _prepare_parent_history(db)
-    periods = _parent_periods(db)
+    prepare_parent_history(db)
+    periods = parent_periods(db)
     request = ParentReportJobRequest(
         student_id=facts["student_id"],
         subskill_ids=facts["subskill_ids"],
