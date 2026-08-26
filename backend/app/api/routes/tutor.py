@@ -237,6 +237,11 @@ def decide(
     job = get_job(db, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="not found")
+    if job.job_type == "parent_report":
+        raise HTTPException(
+            status_code=409,
+            detail="parent reports use the consent-gated parent report workflow",
+        )
     try:
         require_job_decision_access(db, caller, job)
     except PermissionDenied as exc:

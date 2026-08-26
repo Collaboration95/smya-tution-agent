@@ -10,6 +10,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <nav className="site-nav" aria-label="Primary navigation">
               <a href="/student">Student practice</a>
               <a href="/tutor">Tutor jobs</a>
+              <a href="/tutor/reports">Parent reports</a>
               <a href="/health">Health</a>
             </nav>
           </div>

@@ -74,3 +74,65 @@ class ParentReportDraftResponse(BaseModel):
     snapshot_ids: list[str]
     evidence_ids: list[str]
     content: dict
+    approved_guardian_link_id: str | None = None
+    reviewed_by: str | None = None
+    review_reason: str | None = None
+    approved_by: str | None = None
+    approved_at: str | None = None
+    rejected_at: str | None = None
+    blocked_reason: str | None = None
+    queued_at: str | None = None
+    delivered_at: str | None = None
+    guardian_links: list["GuardianLinkResponse"] = Field(default_factory=list)
+    delivery: "ParentReportDeliveryResponse | None" = None
+    audit: list["ParentReportAuditResponse"] = Field(default_factory=list)
+
+
+class ParentReportApproveRequest(BaseModel):
+    guardian_link_id: str = Field(min_length=1, max_length=64)
+    reason: str | None = Field(default=None, max_length=1000)
+
+    model_config = {"extra": "forbid"}
+
+
+class ParentReportRejectRequest(BaseModel):
+    reason: str = Field(min_length=1, max_length=1000)
+
+    model_config = {"extra": "forbid"}
+
+
+class GuardianLinkResponse(BaseModel):
+    id: str
+    display_name: str
+    verification_status: str
+    reporting_consent: bool
+
+
+class ParentReportAuditResponse(BaseModel):
+    id: str
+    event: str
+    entity_type: str
+    entity_id: str
+    actor_id: str
+    actor_role: str
+    before: dict | None = None
+    after: dict | None = None
+    created_at: str | None = None
+
+
+class ParentReportDeliveryResponse(BaseModel):
+    id: str
+    draft_id: str
+    status: str
+    idempotency_key: str
+    guardian_link_id: str
+    approved_by: str
+    approved_at: str
+    queued_at: str
+    delivered_at: str | None = None
+    provider_message_id: str | None = None
+    blocked_reason: str | None = None
+    approved_content: dict | None = None
+
+
+ParentReportDraftResponse.model_rebuild()
