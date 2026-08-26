@@ -24,6 +24,7 @@ class GetAttemptEvidenceResponse(BaseModel):
     attempt_ids: list[str]
     eligible_attempts: int
     correct_attempts: int
+    excluded_evidence_ids: list[str] = Field(default_factory=list)
 
 class GetMasteryStateRequest(BaseModel):
     student_id: str

@@ -27,6 +27,7 @@ from backend.app.db.models import (
     TutorAlert,
     TutorCorrection,
     TutorDecision,
+    TutorEvidenceExclusion,
     User,
 )
 from backend.app.auth.context import CallerContext
@@ -49,6 +50,7 @@ def seed_db(db: Session) -> dict:
     for tbl in [
         PracticeHint,
         PracticeSession,
+        TutorEvidenceExclusion,
         MasteryEvidence,
         Attempt,
         AssessmentAssignment,

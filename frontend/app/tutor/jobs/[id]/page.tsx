@@ -22,46 +22,135 @@ export default function JobTracePage() {
   const [userId, setUserId] = useState("TUT-SYNTH-ALPHA");
   const [reason, setReason] = useState("");
   const [correctedLabel, setCorrectedLabel] = useState("developing");
+  const [alertReason, setAlertReason] = useState("");
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  const load = useCallback(() => {
-    fetch(apiUrl(`/api/tutor/jobs/${jobId}`), { headers: { "X-User-Id": userId }, cache: "no-store" })
-      .then(r => r.json().then(j => ({ ok: r.ok, j })))
-      .then(({ ok, j }) => {
-        if (!ok) throw new Error(JSON.stringify(j));
-        setData(j);
-        setErr(null);
-      })
-      .catch(e => setErr(String(e)));
+  const load = useCallback(async (signal?: AbortSignal) => {
+    const r = await fetch(apiUrl(`/api/tutor/jobs/${jobId}`), {
+      headers: { "X-User-Id": userId },
+      cache: "no-store",
+      signal,
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(JSON.stringify(j));
+    setData(j);
+    setErr(null);
   }, [jobId, userId]);
-  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setData(null);
+    setErr(null);
+    load(controller.signal).catch(e => {
+      if (e?.name !== "AbortError") setErr(String(e));
+    });
+    return () => controller.abort();
+  }, [load]);
+
+  useEffect(() => {
+    document.title = data ? `Tutor review — ${data.job.id}` : "Tutor review — SMYA Co-Tutor";
+  }, [data]);
 
   const decide = async (action: string) => {
+    if (busyAction) return;
+    if ((action === "accept" || action === "edit") && !data?.artifacts?.length) {
+      setErr("No approved artifact exists; this job must remain blocked for tutor review.");
+      return;
+    }
+    setBusyAction(action);
+    setStatusMessage(null);
     const qs = new URLSearchParams({ action, reason });
     if (action === "edit") qs.set("corrected_label", correctedLabel);
-    const r = await fetch(`${apiUrl(`/api/tutor/jobs/${jobId}/decision`)}?${qs.toString()}`, { method: "POST", headers: { "X-User-Id": userId } });
-    const j = await r.json();
-    if (!r.ok) { setErr(JSON.stringify(j)); return; }
-    load();
+    try {
+      const r = await fetch(`${apiUrl(`/api/tutor/jobs/${jobId}/decision`)}?${qs.toString()}`, {
+        method: "POST",
+        headers: { "X-User-Id": userId },
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(JSON.stringify(j));
+      await load();
+      setStatusMessage(action === "edit" ? "Correction saved." : `Decision recorded: ${action}.`);
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setBusyAction(null);
+    }
   };
 
-  if (err && !data) return <div className="text-sm text-red-600 p-4">Error: {err}<br/>Ensure API is running and job exists.</div>;
-  if (!data) return <div className="text-sm text-gray-500 p-4">Loading {jobId}…</div>;
+  const excludeEvidence = async (evidenceId: string) => {
+    if (busyAction) return;
+    if (!reason.trim()) {
+      setErr("Enter a reason before excluding evidence.");
+      return;
+    }
+    setBusyAction(`exclude:${evidenceId}`);
+    setStatusMessage(null);
+    const qs = new URLSearchParams({ action: "exclude_evidence", evidence_id: evidenceId, reason });
+    try {
+      const r = await fetch(`${apiUrl(`/api/tutor/jobs/${jobId}/decision`)}?${qs.toString()}`, {
+        method: "POST",
+        headers: { "X-User-Id": userId },
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(JSON.stringify(j));
+      await load();
+      setStatusMessage("Evidence excluded and mastery history recomputed.");
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const resolveAlert = async (alertId: string, resolution: string) => {
+    if (busyAction) return;
+    if (!alertReason.trim()) {
+      setErr("Enter a resolution reason before closing an alert.");
+      return;
+    }
+    setBusyAction(`resolve:${alertId}`);
+    setStatusMessage(null);
+    try {
+      const r = await fetch(apiUrl(`/api/tutor/alerts/${alertId}/resolve`), {
+        method: "POST",
+        headers: { "X-User-Id": userId, "Content-Type": "application/json" },
+        body: JSON.stringify({ resolution, reason: alertReason }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(JSON.stringify(j));
+      await load();
+      setAlertReason("");
+      setStatusMessage("Alert resolution recorded.");
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  if (err && !data) return <div className="text-sm text-red-600 p-4" role="alert">Error: {err}<br/>Ensure API is running and job exists.</div>;
+  if (!data) return <div className="text-sm text-gray-500 p-4" role="status">Loading {jobId}…</div>;
 
   return (
     <div className="space-y-4">
-      <a href="/tutor" className="text-sm text-blue-600 hover:underline">← All jobs</a>
+      <a href="/tutor" className="text-sm text-blue-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">← All jobs</a>
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Job {data.job.id}</h1>
+        <div>
+          <p className="text-xs uppercase tracking-[0.18em] text-gray-500">Tutor review ledger</p>
+          <h1 className="text-xl font-semibold">Job {data.job.id}</h1>
+        </div>
         <span className="text-sm px-3 py-1 rounded bg-white border">{data.job.status}</span>
       </div>
       <div className="flex items-center gap-2 text-sm">
-        <label>Tutor</label>
-        <select value={userId} onChange={e => setUserId(e.target.value)} className="border rounded px-2 py-1">
+        <label htmlFor="trace-tutor">Tutor</label>
+        <select id="trace-tutor" value={userId} onChange={e => setUserId(e.target.value)} className="border rounded px-2 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
           <option value="TUT-SYNTH-ALPHA">TUT-SYNTH-ALPHA (assigned)</option>
           <option value="TUT-SYNTH-BRAVO">TUT-SYNTH-BRAVO (should 403)</option>
         </select>
-        {err ? <span className="text-red-600">{err}</span> : null}
+        {err ? <span className="text-red-600" role="alert">{err}</span> : null}
       </div>
+      {statusMessage ? <div className="rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800" role="status">{statusMessage}</div> : null}
 
       <section className="grid md:grid-cols-2 gap-4">
         <div className="border rounded bg-white p-3 space-y-2">
@@ -132,12 +221,68 @@ export default function JobTracePage() {
           <div key={a.id} className="border rounded p-2 mb-2">
             <div className="flex justify-between text-sm"><span className="font-mono">{a.id}</span><span>v{a.version} • {a.type}</span></div>
             <pre className="text-xs bg-gray-50 p-2 rounded mt-2 overflow-auto">{JSON.stringify(a.payload, null, 2)}</pre>
+            {Array.isArray(a.payload?.evidence_ids) ? (
+              <div className="mt-3 border-t pt-3">
+                <h3 className="text-sm font-medium">Evidence decisions</h3>
+                <p className="text-xs text-gray-500 mt-1">Exclude only evidence you can explain. The server will append a new mastery state; it will not rewrite the original.</p>
+                <div className="mt-2 grid gap-2">
+                  {a.payload.evidence_ids.map((evidenceId:string) => {
+                    const excluded = (data.evidence_exclusions ?? []).some((item:any) => item.evidence_id === evidenceId);
+                    const isBusy = busyAction === `exclude:${evidenceId}`;
+                    return (
+                      <div key={evidenceId} className="flex flex-wrap items-center justify-between gap-2 rounded border bg-gray-50 px-2 py-2 text-xs">
+                        <code className="break-all">{evidenceId}</code>
+                        {excluded ? <span className="rounded bg-gray-200 px-2 py-1 text-gray-600">Excluded with audit record</span> : (
+                          <button
+                            type="button"
+                            onClick={() => excludeEvidence(evidenceId)}
+                            disabled={busyAction !== null}
+                            aria-busy={isBusy}
+                            className="rounded border border-orange-300 px-2 py-1 text-orange-800 hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
+                          >{isBusy ? "Excluding…" : "Exclude evidence"}</button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
         ))}
         {data.alerts.length>0 ? (
-          <div className="mt-3">
-            <h3 className="text-sm font-medium">Alerts</h3>
-            {data.alerts.map((al:any)=> <div key={al.id} className="text-sm border rounded p-2 bg-yellow-50 mt-1">{al.type}: {al.message}</div>)}
+          <div className="mt-4 border-t pt-3">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-medium">Tutor alerts</h3>
+                <p className="text-xs text-gray-500 mt-1">Resolution closes the alert record only. The job remains reviewable until a safe, approved outcome exists.</p>
+              </div>
+              <label className="grid gap-1 text-xs text-gray-600" htmlFor="alert-reason">
+                Resolution reason
+                <input id="alert-reason" value={alertReason} onChange={e=>setAlertReason(e.target.value)} className="min-w-[16rem] border rounded px-2 py-1 text-sm text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400" placeholder="What did you review?" />
+              </label>
+            </div>
+            {data.alerts.map((al:any)=> {
+              const isBusy = busyAction === `resolve:${al.id}`;
+              const resolution = al.type === "unsupported" ? "keep_blocked" : "collect_more_evidence";
+              return (
+                <div key={al.id} className={`text-sm border rounded p-3 mt-2 ${al.status === "resolved" ? "bg-gray-50" : "bg-yellow-50"}`} role={al.status === "open" ? "alert" : undefined}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium">{al.type}</span>
+                    <span className="rounded bg-white px-2 py-0.5 text-xs uppercase tracking-wide">{al.status}</span>
+                  </div>
+                  <p className="mt-1">{al.message}</p>
+                  {al.status === "resolved" ? <p className="mt-1 text-xs text-gray-600">{al.resolution} — {al.resolution_reason} ({al.resolved_by})</p> : (
+                    <button
+                      type="button"
+                      onClick={() => resolveAlert(al.id, resolution)}
+                      disabled={busyAction !== null}
+                      aria-busy={isBusy}
+                      className="mt-2 rounded bg-teal-700 px-3 py-1.5 text-xs text-white hover:bg-teal-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    >{isBusy ? "Saving…" : al.type === "unsupported" ? "Keep blocked and record review" : "Record review"}</button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ):null}
       </section>
@@ -164,6 +309,8 @@ export default function JobTracePage() {
                 <div key={decision.id} className="border rounded p-2 text-sm">
                   <div className="flex justify-between"><span className="font-medium">{decision.action}</span><span className="text-gray-500">{new Date(decision.created_at).toLocaleString()}</span></div>
                   <div className="text-gray-600">{decision.actor_id} ({decision.actor_role}){decision.corrected_label ? ` • ${decision.corrected_label}` : ""}</div>
+                  {decision.evidence_id ? <div className="text-xs text-gray-500 break-all">Evidence: {decision.evidence_id}</div> : null}
+                  {decision.alert_id ? <div className="text-xs text-gray-500 break-all">Alert: {decision.alert_id}</div> : null}
                   {decision.reason ? <div className="text-gray-600">{decision.reason}</div> : null}
                 </div>
               ))}
@@ -172,26 +319,60 @@ export default function JobTracePage() {
         </div>
       </section>
 
+      <section className="grid md:grid-cols-2 gap-4">
+        <div className="border rounded bg-white p-3 space-y-2">
+          <h2 className="font-medium">Versioned corrections</h2>
+          {(data.corrections ?? []).length === 0 ? <p className="text-sm text-gray-500">No tutor correction has been recorded.</p> : (
+            <div className="space-y-2">
+              {data.corrections.map((correction:any) => (
+                <div key={correction.id} className="border-l-2 border-orange-400 pl-3 text-sm">
+                  <div className="flex flex-wrap justify-between gap-2"><span className="font-medium">{correction.corrected_label}</span><span className="text-gray-500">v{correction.supersedes_version} → new state</span></div>
+                  <p className="text-gray-600">By {correction.author_tutor_id} · {correction.reason}</p>
+                  <p className="text-xs text-gray-500 break-all">Original state: {correction.original_state_id} · Proposal: {correction.artifact_id ?? "—"}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="border rounded bg-white p-3 space-y-2">
+          <h2 className="font-medium">Mastery history</h2>
+          {(data.mastery_history ?? []).length === 0 ? <p className="text-sm text-gray-500">No mastery history is available for this job.</p> : (
+            <ol className="space-y-2">
+              {data.mastery_history.map((state:any) => (
+                <li key={state.id} className="border rounded p-2 text-sm">
+                  <div className="flex flex-wrap justify-between gap-2"><span className="font-medium">Version {state.version} · {state.label}</span><span className="text-gray-500">{state.is_override ? "tutor override" : "deterministic"}</span></div>
+                  <div className="text-gray-600">{state.eligible_attempts} eligible · {state.correct_attempts} correct · {state.accuracy} accuracy · {state.confidence} confidence</div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      </section>
+
       <section className="border rounded bg-white p-3 space-y-3">
         <h2 className="font-medium">Tutor decision (persisted to effective workflow state)</h2>
         <div className="flex flex-col gap-2">
-          <input value={reason} onChange={e=>setReason(e.target.value)} placeholder="Reason for decision (optional)" className="border rounded px-2 py-1 text-sm"/>
+          <label className="grid gap-1 text-sm" htmlFor="decision-reason">
+            Decision reason
+            <input id="decision-reason" value={reason} onChange={e=>setReason(e.target.value)} placeholder="Explain the evidence review" className="border rounded px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"/>
+          </label>
           <div className="flex items-center gap-2 text-sm">
-            <label>Corrected label (for Edit)</label>
-            <select value={correctedLabel} onChange={e=>setCorrectedLabel(e.target.value)} className="border rounded px-2 py-1">
+            <label htmlFor="corrected-label">Corrected label (for Edit)</label>
+            <select id="corrected-label" value={correctedLabel} onChange={e=>setCorrectedLabel(e.target.value)} className="border rounded px-2 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
               <option value="insufficient_evidence">insufficient_evidence</option>
               <option value="requires_support">requires_support</option>
               <option value="developing">developing</option>
               <option value="secure">secure</option>
             </select>
           </div>
+          {!data.artifacts.length ? <p className="text-xs text-gray-600">No approved artifact exists for this job. Accept and Edit stay disabled; resolve the alert while keeping unsupported content blocked.</p> : null}
           <div className="flex flex-wrap gap-2">
-            <button onClick={()=>decide("accept")} className="px-3 py-1.5 rounded bg-green-600 text-white text-sm hover:bg-green-700">Accept</button>
-            <button onClick={()=>decide("edit")} className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm hover:bg-blue-700">Edit (override)</button>
-            <button onClick={()=>decide("more_evidence")} className="px-3 py-1.5 rounded bg-yellow-600 text-white text-sm hover:bg-yellow-700">More evidence</button>
-            <button onClick={()=>decide("reject")} className="px-3 py-1.5 rounded bg-red-600 text-white text-sm hover:bg-red-700">Reject</button>
+            <button type="button" onClick={()=>decide("accept")} disabled={busyAction !== null || !data.artifacts.length} aria-busy={busyAction === "accept"} className="px-3 py-1.5 rounded bg-green-600 text-white text-sm hover:bg-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 disabled:cursor-not-allowed disabled:opacity-50">{busyAction === "accept" ? "Accepting…" : "Accept"}</button>
+            <button type="button" onClick={()=>decide("edit")} disabled={busyAction !== null || !data.artifacts.length} aria-busy={busyAction === "edit"} className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 disabled:cursor-not-allowed disabled:opacity-50">{busyAction === "edit" ? "Saving…" : "Edit (override)"}</button>
+            <button type="button" onClick={()=>decide("more_evidence")} disabled={busyAction !== null} aria-busy={busyAction === "more_evidence"} className="px-3 py-1.5 rounded bg-yellow-600 text-white text-sm hover:bg-yellow-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 disabled:cursor-not-allowed disabled:opacity-50">{busyAction === "more_evidence" ? "Saving…" : "More evidence"}</button>
+            <button type="button" onClick={()=>decide("reject")} disabled={busyAction !== null} aria-busy={busyAction === "reject"} className="px-3 py-1.5 rounded border border-red-300 text-red-700 text-sm hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 disabled:cursor-not-allowed disabled:opacity-50">{busyAction === "reject" ? "Rejecting…" : "Reject"}</button>
           </div>
-          <p className="text-xs text-gray-500">Actions are scoped: only assigned tutor can act; decision is audited and visible in mastery history. Raw chain-of-thought and out-of-scope student data are never exposed.</p>
+          <p className="text-xs text-gray-500">Only the assigned tutor can act. Corrections, exclusions, alert resolutions, and approvals append audit records; raw chain-of-thought and out-of-scope student data are never exposed.</p>
         </div>
       </section>
     </div>

@@ -9,7 +9,7 @@ from typing import Any
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from backend.app.db.models import Attempt, MasteryEvidence, MasteryState, Question, Student
+from backend.app.db.models import Attempt, MasteryEvidence, MasteryState, Question, Student, TutorEvidenceExclusion
 
 ROOT = Path(__file__).resolve().parents[3]
 POLICY_PATH = ROOT / "domain" / "mastery_policy" / "mastery_policy_v1.json"
@@ -112,6 +112,16 @@ def get_eligible_attempts(
         .limit(100)
         .all()
     )
+    excluded_evidence_ids = {
+        evidence_id
+        for (evidence_id,) in db.query(TutorEvidenceExclusion.evidence_id)
+        .filter(
+            TutorEvidenceExclusion.student_id == student_id,
+            TutorEvidenceExclusion.subskill_id == subskill_id,
+            TutorEvidenceExclusion.centre_id == student.centre_id,
+        )
+        .all()
+    }
     eligible_attempts: list[Attempt] = []
     for attempt in attempts:
         evidence = (
@@ -126,7 +136,12 @@ def get_eligible_attempts(
             )
             .first()
         )
-        if evidence is not None and attempt.grading_status == "graded" and evidence.is_correct == attempt.is_correct:
+        if (
+            evidence is not None
+            and evidence.id not in excluded_evidence_ids
+            and attempt.grading_status == "graded"
+            and evidence.is_correct == attempt.is_correct
+        ):
             eligible_attempts.append(attempt)
     correct = sum(1 for attempt in eligible_attempts if attempt.is_correct)
     return len(eligible_attempts), correct, eligible_attempts
