@@ -1,0 +1,267 @@
+{
+  "schema_version": "s4_golden_cases_v1",
+  "contract_id": "fractions_contract_v1",
+  "policy_id": "mastery_policy_v1",
+  "cases": [
+    {
+      "case_id": "S4-GOLDEN-DIAGNOSTIC-A-ADD",
+      "checkpoint_id": "checkpoint-s4-diagnostic-a-add",
+      "title": "Evidence-backed diagnostic pauses for tutor review",
+      "workflow": "diagnostic",
+      "input_facts": {
+        "centre_id": "CTR-SYNTH-NORTHSTAR",
+        "student_id": "STU-SYNTH-A",
+        "subskill_id": "FRC-ADD-SUB-UNLIKE",
+        "trigger": "attempt_completed"
+      },
+      "expected_deterministic_state": {
+        "eligible_attempts": 4,
+        "correct_attempts": 1,
+        "accuracy": 0.25,
+        "confidence": 0.8,
+        "label": "requires_support",
+        "job_status": "needs_tutor_review",
+        "review_reason": "conflicting_evidence",
+        "artifact_type": "mastery_proposal",
+        "model_call_required": true
+      },
+      "allowed_sources": ["SRC-SYNTH-FRACTIONS-V1"],
+      "allowed_actions": [
+        "get_student_snapshot",
+        "get_attempt_evidence",
+        "get_mastery_state",
+        "retrieve_approved_curriculum",
+        "model.generate_structured",
+        "tutor_review"
+      ],
+      "safe_outcome": {
+        "status": "needs_tutor_review",
+        "auto_assignment": false,
+        "raw_reasoning_persisted": false
+      },
+      "fallback_id": "S4-FALLBACK-DIAGNOSTIC-A-ADD"
+    },
+    {
+      "case_id": "S4-GOLDEN-DIAGNOSTIC-A-MULT-LOW-EVIDENCE",
+      "checkpoint_id": "checkpoint-s4-diagnostic-a-mult-low-evidence",
+      "title": "Insufficient evidence escalates instead of overclaiming mastery",
+      "workflow": "diagnostic",
+      "input_facts": {
+        "centre_id": "CTR-SYNTH-NORTHSTAR",
+        "student_id": "STU-SYNTH-A",
+        "subskill_id": "FRC-MULTIPLY-WHOLE",
+        "trigger": "manual_request"
+      },
+      "expected_deterministic_state": {
+        "eligible_attempts": 1,
+        "correct_attempts": 1,
+        "accuracy": 1.0,
+        "confidence": 0.35,
+        "label": "insufficient_evidence",
+        "job_status": "needs_tutor_review",
+        "review_reason": "low_evidence",
+        "artifact_type": "mastery_proposal",
+        "model_call_required": true
+      },
+      "allowed_sources": ["SRC-SYNTH-FRACTIONS-V1"],
+      "allowed_actions": [
+        "get_student_snapshot",
+        "get_attempt_evidence",
+        "get_mastery_state",
+        "retrieve_approved_curriculum",
+        "model.generate_structured",
+        "collect_more_evidence",
+        "tutor_review"
+      ],
+      "safe_outcome": {
+        "status": "needs_tutor_review",
+        "next_action": "collect_more_evidence",
+        "auto_assignment": false
+      },
+      "fallback_id": "S4-FALLBACK-DIAGNOSTIC-A-MULT-LOW-EVIDENCE"
+    },
+    {
+      "case_id": "S4-GOLDEN-DENIED-GUARDIAN-B-REPORT",
+      "checkpoint_id": "checkpoint-s4-denied-guardian-b-report",
+      "title": "Unverified guardian cannot read a progress report",
+      "workflow": "denial",
+      "input_facts": {
+        "centre_id": "CTR-SYNTH-NORTHSTAR",
+        "student_id": "STU-SYNTH-B",
+        "guardian_link_id": "GRD-SYNTH-B-PENDING",
+        "action": "read_student_progress_report"
+      },
+      "expected_deterministic_state": {
+        "outcome": "authorisation_denied",
+        "reason": "guardian_link_not_verified_or_consented",
+        "model_call_required": false
+      },
+      "allowed_sources": [],
+      "allowed_actions": ["verify_guardian_link", "grant_reporting_consent"],
+      "safe_outcome": {
+        "status": "blocked",
+        "report_content_returned": false,
+        "delivery_attempted": false
+      },
+      "fallback_id": null
+    },
+    {
+      "case_id": "S4-GOLDEN-UNSUPPORTED-DECIMALS",
+      "checkpoint_id": "checkpoint-s4-unsupported-decimals",
+      "title": "Unsupported content stops before a model call",
+      "workflow": "diagnostic",
+      "input_facts": {
+        "centre_id": "CTR-SYNTH-NORTHSTAR",
+        "student_id": "STU-SYNTH-A",
+        "subskill_id": "DECIMALS",
+        "trigger": "manual_request"
+      },
+      "expected_deterministic_state": {
+        "label": "insufficient_evidence",
+        "job_status": "needs_tutor_review",
+        "review_reason": "unsupported_content",
+        "artifact_count": 0,
+        "model_call_required": false
+      },
+      "allowed_sources": [],
+      "allowed_actions": [
+        "get_student_snapshot",
+        "get_attempt_evidence",
+        "get_mastery_state",
+        "retrieve_approved_curriculum",
+        "tutor_review",
+        "keep_blocked"
+      ],
+      "safe_outcome": {
+        "status": "needs_tutor_review",
+        "unsupported_content": true,
+        "model_call_made": false,
+        "artifact_created": false
+      },
+      "fallback_id": null
+    },
+    {
+      "case_id": "S4-GOLDEN-DIVERGENCE-A-B-ASSESSMENT",
+      "checkpoint_id": "checkpoint-s4-divergence-a-b-assessment",
+      "title": "The same sub-skill request produces different approved practice",
+      "workflow": "assessment",
+      "input_facts": {
+        "centre_id": "CTR-SYNTH-NORTHSTAR",
+        "subskill_id": "FRC-ADD-SUB-UNLIKE",
+        "item_count": 2,
+        "students": ["STU-SYNTH-A", "STU-SYNTH-B"]
+      },
+      "expected_deterministic_state": {
+        "students": {
+          "STU-SYNTH-A": {
+            "label": "requires_support",
+            "difficulty": "foundation",
+            "question_ids": ["Q-FRC-ADD-001", "Q-FRC-ADD-005"],
+            "draft_status": "pending_tutor_review"
+          },
+          "STU-SYNTH-B": {
+            "label": "secure",
+            "difficulty": "stretch",
+            "question_ids": ["Q-FRC-ADD-006", "Q-FRC-ADD-004"],
+            "draft_status": "pending_tutor_review"
+          }
+        },
+        "assignment_created": false,
+        "model_call_required": false
+      },
+      "allowed_sources": ["SRC-SYNTH-FRACTIONS-V1"],
+      "allowed_actions": [
+        "get_mastery_state",
+        "retrieve_approved_curriculum",
+        "save_assessment_draft",
+        "tutor_approval",
+        "assign_after_approval"
+      ],
+      "safe_outcome": {
+        "status": "draft_pending_tutor_approval",
+        "student_a_and_b_diverge": true,
+        "auto_assignment": false
+      },
+      "fallback_id": null
+    },
+    {
+      "case_id": "S4-GOLDEN-TUTOR-CORRECTION-A-ADD",
+      "checkpoint_id": "checkpoint-s4-tutor-correction-a-add",
+      "title": "Tutor correction creates a versioned effective override",
+      "workflow": "correction",
+      "input_facts": {
+        "centre_id": "CTR-SYNTH-NORTHSTAR",
+        "student_id": "STU-SYNTH-A",
+        "subskill_id": "FRC-ADD-SUB-UNLIKE",
+        "tutor_id": "TUT-SYNTH-ALPHA",
+        "corrected_label": "developing",
+        "reason": "Tutor re-evaluated the conflicting evidence."
+      },
+      "expected_deterministic_state": {
+        "original_label": "requires_support",
+        "corrected_label": "developing",
+        "override": true,
+        "job_status": "succeeded",
+        "action": "edit",
+        "model_call_required": true
+      },
+      "allowed_sources": ["SRC-SYNTH-FRACTIONS-V1"],
+      "allowed_actions": [
+        "get_student_snapshot",
+        "get_attempt_evidence",
+        "get_mastery_state",
+        "retrieve_approved_curriculum",
+        "model.generate_structured",
+        "tutor_review",
+        "edit",
+        "persist_override"
+      ],
+      "safe_outcome": {
+        "status": "edited",
+        "effective_state_is_override": true,
+        "automatic_delivery": false
+      },
+      "fallback_id": "S4-FALLBACK-TUTOR-CORRECTION-A-ADD"
+    },
+    {
+      "case_id": "S4-GOLDEN-PARENT-PERIOD-A-ADD",
+      "checkpoint_id": "checkpoint-s4-parent-period-a-add",
+      "title": "Parent progress is grounded in selected history periods",
+      "workflow": "parent_report",
+      "input_facts": {
+        "centre_id": "CTR-SYNTH-NORTHSTAR",
+        "student_id": "STU-SYNTH-A",
+        "subskill_ids": ["FRC-ADD-SUB-UNLIKE"],
+        "period_definition": {
+          "anchor": "earliest_seeded_evidence",
+          "previous_start_offset_days": -1,
+          "previous_end_offset_hours": 1,
+          "current_start_offset_hours": 2,
+          "current_end_offset_days": 2
+        },
+        "trigger": "manual_request"
+      },
+      "expected_deterministic_state": {
+        "previous_label": "requires_support",
+        "current_label": "developing",
+        "progress_signal": "improved",
+        "job_status": "needs_tutor_review",
+        "draft_status": "pending_tutor_review",
+        "artifact_type": "parent_report_draft",
+        "model_call_required": true
+      },
+      "allowed_sources": ["SRC-SYNTH-FRACTIONS-V1"],
+      "allowed_actions": [
+        "get_mastery_history",
+        "model.generate_structured",
+        "tutor_approval"
+      ],
+      "safe_outcome": {
+        "status": "pending_tutor_review",
+        "guardian_delivery": false,
+        "raw_chat_included": false
+      },
+      "fallback_id": "S4-FALLBACK-PARENT-PERIOD-A-ADD"
+    }
+  ]
+}

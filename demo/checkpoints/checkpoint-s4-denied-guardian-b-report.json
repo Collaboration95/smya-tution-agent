@@ -1,0 +1,64 @@
+{
+  "case_id": "S4-GOLDEN-DENIED-GUARDIAN-B-REPORT",
+  "checkpoint_id": "checkpoint-s4-denied-guardian-b-report",
+  "expected": {
+    "allowed_actions": [
+      "verify_guardian_link",
+      "grant_reporting_consent"
+    ],
+    "allowed_sources": [],
+    "deterministic_state": {
+      "model_call_required": false,
+      "outcome": "authorisation_denied",
+      "reason": "guardian_link_not_verified_or_consented"
+    },
+    "safe_outcome": {
+      "delivery_attempted": false,
+      "report_content_returned": false,
+      "status": "blocked"
+    }
+  },
+  "fallback": {
+    "artifact": null,
+    "disclaimer": null,
+    "fixture_id": null,
+    "label": null,
+    "source": null,
+    "used": false
+  },
+  "inputs": {
+    "action": "read_student_progress_report",
+    "centre_id": "CTR-SYNTH-NORTHSTAR",
+    "guardian_link_id": "GRD-SYNTH-B-PENDING",
+    "student_id": "STU-SYNTH-B"
+  },
+  "observed": {
+    "delivery_attempted": false,
+    "guardian_verification_status": "pending",
+    "model_call_required": false,
+    "outcome": "authorisation_denied",
+    "provenance": {
+      "actual_runtime": true,
+      "attempts": [],
+      "job_id": null,
+      "model_id": null,
+      "provider": null,
+      "tool_calls": []
+    },
+    "reason": "guardian_link_not_verified_or_consented",
+    "report_content_returned": false,
+    "reporting_consent": false,
+    "source_ids": []
+  },
+  "provenance": {
+    "actual_runtime": true,
+    "attempts": [],
+    "job_id": null,
+    "model_id": null,
+    "provider": null,
+    "tool_calls": []
+  },
+  "schema_version": "s4_checkpoint_v1",
+  "title": "Unverified guardian cannot read a progress report",
+  "workflow": "denial"
+}

@@ -1,0 +1,116 @@
+{
+  "case_id": "S4-GOLDEN-DIVERGENCE-A-B-ASSESSMENT",
+  "checkpoint_id": "checkpoint-s4-divergence-a-b-assessment",
+  "expected": {
+    "allowed_actions": [
+      "get_mastery_state",
+      "retrieve_approved_curriculum",
+      "save_assessment_draft",
+      "tutor_approval",
+      "assign_after_approval"
+    ],
+    "allowed_sources": [
+      "SRC-SYNTH-FRACTIONS-V1"
+    ],
+    "deterministic_state": {
+      "assignment_created": false,
+      "model_call_required": false,
+      "students": {
+        "STU-SYNTH-A": {
+          "difficulty": "foundation",
+          "draft_status": "pending_tutor_review",
+          "label": "requires_support",
+          "question_ids": [
+            "Q-FRC-ADD-001",
+            "Q-FRC-ADD-005"
+          ]
+        },
+        "STU-SYNTH-B": {
+          "difficulty": "stretch",
+          "draft_status": "pending_tutor_review",
+          "label": "secure",
+          "question_ids": [
+            "Q-FRC-ADD-006",
+            "Q-FRC-ADD-004"
+          ]
+        }
+      }
+    },
+    "safe_outcome": {
+      "auto_assignment": false,
+      "status": "draft_pending_tutor_approval",
+      "student_a_and_b_diverge": true
+    }
+  },
+  "fallback": {
+    "artifact": null,
+    "disclaimer": null,
+    "fixture_id": null,
+    "label": null,
+    "source": null,
+    "used": false
+  },
+  "inputs": {
+    "centre_id": "CTR-SYNTH-NORTHSTAR",
+    "item_count": 2,
+    "students": [
+      "STU-SYNTH-A",
+      "STU-SYNTH-B"
+    ],
+    "subskill_id": "FRC-ADD-SUB-UNLIKE"
+  },
+  "observed": {
+    "actions": [
+      "get_mastery_state",
+      "save_assessment_draft"
+    ],
+    "assignment_created": false,
+    "model_call_required": false,
+    "provenance": {
+      "actual_runtime": true,
+      "attempts": [],
+      "job_id": null,
+      "model_id": null,
+      "provider": null,
+      "tool_calls": []
+    },
+    "source_ids": [
+      "SRC-SYNTH-FRACTIONS-V1"
+    ],
+    "students": {
+      "STU-SYNTH-A": {
+        "assignment_id": null,
+        "difficulty": "foundation",
+        "draft_id": "draft-ec301a1f0a",
+        "draft_status": "pending_tutor_review",
+        "label": "requires_support",
+        "question_ids": [
+          "Q-FRC-ADD-001",
+          "Q-FRC-ADD-005"
+        ]
+      },
+      "STU-SYNTH-B": {
+        "assignment_id": null,
+        "difficulty": "stretch",
+        "draft_id": "draft-a42797f423",
+        "draft_status": "pending_tutor_review",
+        "label": "secure",
+        "question_ids": [
+          "Q-FRC-ADD-006",
+          "Q-FRC-ADD-004"
+        ]
+      }
+    }
+  },
+  "provenance": {
+    "actual_runtime": true,
+    "attempts": [],
+    "job_id": null,
+    "model_id": null,
+    "provider": null,
+    "tool_calls": []
+  },
+  "schema_version": "s4_checkpoint_v1",
+  "title": "The same sub-skill request produces different approved practice",
+  "workflow": "assessment"
+}
