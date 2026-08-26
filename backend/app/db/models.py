@@ -321,6 +321,25 @@ class Artifact(Base):
     __table_args__ = (UniqueConstraint("job_id", "version", name="uq_artifact_job_version"),)
 
 
+class ParentReportDraft(Base):
+    __tablename__ = "parent_report_drafts"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    job_id: Mapped[str] = mapped_column(String(64), ForeignKey("agent_jobs.id", ondelete="CASCADE"), nullable=False, index=True)
+    artifact_id: Mapped[str] = mapped_column(String(64), ForeignKey("artifacts.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    centre_id: Mapped[str] = mapped_column(String(64), ForeignKey("centres.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id: Mapped[str] = mapped_column(String(64), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    previous_period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    previous_period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    current_period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    current_period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    snapshot_ids_json: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence_ids_json: Mapped[str] = mapped_column(Text, nullable=False)
+    content_json: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)  # pending_tutor_review|needs_tutor_review
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+
 @event.listens_for(Attempt, "before_update")
 def _reject_attempt_update(mapper, connection, target):
     raise ValueError("attempts are immutable factual inputs")

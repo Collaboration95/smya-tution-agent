@@ -1,4 +1,4 @@
-# SMYA Backend — Epic S1
+# SMYA Backend — S1/S3 bounded agent workflows
 
 FastAPI + Pydantic + SQLAlchemy, Postgres (SQLite fallback), fake ModelClient.
 
@@ -26,6 +26,9 @@ python3 backend/scripts/seed.py
 
 # 5) Run one queued diagnostic job (or omit --once to poll continuously)
 python3 backend/scripts/worker.py --once
+
+# Parent-report drafts use the same durable worker contract and remain for tutor review.
+python3 backend/scripts/worker.py --once --job-type parent_report
 
 # 6) Tests
 pytest backend/tests -v

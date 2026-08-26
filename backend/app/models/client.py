@@ -36,7 +36,7 @@ class ModelClient(ABC):
         ...
 
 class FakeModelClient(ModelClient):
-    """Deterministic fake provider for S1 contract tests. No network."""
+    """Deterministic fake provider for bounded S1-S3 contract tests. No network."""
 
     provider = "fake"
     model_id = "fake-diagnostic-v1"
@@ -71,6 +71,27 @@ class FakeModelClient(ModelClient):
         Tests can still provide explicit fixtures. This fallback keeps the
         local vertical slice runnable without pretending to call a provider.
         """
+        if schema.__name__ == "ParentReportProposal":
+            student_match = re.search(r"Parent report proposal for student ([^\.]+)\.", prompt)
+            signal_match = re.search(r"Expected progress_signal=([a-z_]+)\.", prompt)
+            next_steps_match = re.search(r"Allowed next_step_codes=(\[.*?\])\.", prompt)
+            snapshot_match = re.search(r"Snapshot IDs: (\[.*?\])\. Evidence IDs:", prompt)
+            evidence_match = re.search(r"Evidence IDs: (\[.*?\])\. Use only", prompt)
+            if not (student_match and signal_match and next_steps_match and snapshot_match and evidence_match):
+                return None
+            try:
+                next_step_codes = ast.literal_eval(next_steps_match.group(1))
+                snapshot_ids = ast.literal_eval(snapshot_match.group(1))
+                evidence_ids = ast.literal_eval(evidence_match.group(1))
+            except (SyntaxError, ValueError):
+                return None
+            return {
+                "student_id": student_match.group(1),
+                "progress_signal": signal_match.group(1),
+                "next_step_codes": next_step_codes,
+                "snapshot_ids": snapshot_ids,
+                "evidence_ids": evidence_ids,
+            }
         if schema.__name__ != "MasteryProposal":
             return None
         student_match = re.search(r"student ([^ ]+) subskill", prompt)
@@ -161,5 +182,5 @@ def get_model_client() -> ModelClient:
     s = get_settings()
     if s.model_provider == "fake":
         return FakeModelClient(model_id=s.model_id)
-    # S1 only supports fake; later S4 will add groq/bedrock adapters behind same interface
+    # The bounded prototype supports fake only; S4 may add providers behind this interface.
     raise ValueError(f"Unsupported model_provider in S1: {s.model_provider}")
