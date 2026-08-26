@@ -14,6 +14,7 @@ from backend.app.services.mastery import get_eligible_attempts
 from backend.app.tools.contracts import (
     GetAttemptEvidenceRequest,
     GetAttemptEvidenceResponse,
+    GetMasteryHistoryRequest,
     GetMasteryStateRequest,
     GetMasteryStateResponse,
     GetStudentSnapshotRequest,
@@ -31,7 +32,7 @@ TOOL_ALLOW_LIST = {
         "retrieve_approved_curriculum",
     },
     "assessment": {"get_mastery_state", "retrieve_approved_curriculum", "save_assessment_draft"},
-    "parent_report": {"get_mastery_state"},
+    "parent_report": {"get_mastery_history"},
 }
 
 
@@ -175,6 +176,11 @@ def invoke_tool(db: Session, caller: CallerContext, job: AgentJob, tool_name: st
     elif tool_name == "get_mastery_state":
         typed_request = GetMasteryStateRequest.model_validate(request)
         response = get_mastery_state(db, caller, typed_request)
+    elif tool_name == "get_mastery_history":
+        typed_request = GetMasteryHistoryRequest.model_validate(request)
+        from backend.app.tools.history import get_mastery_history
+
+        response = get_mastery_history(db, caller, typed_request)
     elif tool_name == "retrieve_approved_curriculum":
         typed_request = RetrieveCurriculumRequest.model_validate(request)
         response = retrieve_approved_curriculum(db, caller, typed_request)

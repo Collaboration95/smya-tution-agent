@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pydantic import BaseModel, Field
+from datetime import datetime
 from typing import Literal
 
 # Typed tool contracts — inputs and outputs are validated, not prompt strings.
@@ -40,6 +41,38 @@ class GetMasteryStateResponse(BaseModel):
     policy_id: str
     policy_version: str
     is_override: bool
+
+
+class GetMasteryHistoryRequest(BaseModel):
+    student_id: str
+    subskill_ids: list[str] = Field(min_length=1, max_length=5)
+    previous_period_start: datetime
+    previous_period_end: datetime
+    current_period_start: datetime
+    current_period_end: datetime
+
+
+class MasteryHistorySnapshot(BaseModel):
+    id: str
+    student_id: str
+    subskill_id: str
+    version: int
+    eligible_attempts: int
+    correct_attempts: int
+    accuracy: float
+    confidence: float
+    label: str
+    policy_id: str
+    policy_version: str
+    is_override: bool
+    created_at: datetime
+    evidence_ids: list[str]
+
+
+class GetMasteryHistoryResponse(BaseModel):
+    student_id: str
+    previous_period: list[MasteryHistorySnapshot]
+    current_period: list[MasteryHistorySnapshot]
 
 class RetrieveCurriculumRequest(BaseModel):
     query: str = Field(description="Free-text query, must not bypass filters")

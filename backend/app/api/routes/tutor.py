@@ -89,7 +89,12 @@ def get_trace(
         error = run_error(run)
         if error is None:
             return {"status": "passed" if run.output_json else "not_run"}
-        if error.get("code") in {"low_evidence", "conflicting_evidence"}:
+        if error.get("code") in {
+            "low_evidence",
+            "conflicting_evidence",
+            "insufficient_history",
+            "parent_report_requires_tutor_review",
+        }:
             return {"status": "passed", "review_required": True, "reason": error["code"]}
         return {"status": "failed", "reason": error.get("code", "worker_error")}
 

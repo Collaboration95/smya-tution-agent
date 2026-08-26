@@ -12,12 +12,12 @@ class Settings(BaseSettings):
     app_name: str = Field(default="SMYA Co-Tutor API")
     app_env: str = Field(default="local")  # local | test | production
     app_version: str = Field(default="0.1.0-s1")
-    # Postgres is primary; SQLite is the zero-dependency fallback for S1 local/CI.
+    # Postgres is primary; SQLite is the zero-dependency fallback for local/CI.
     database_url: str = Field(
         default="sqlite:///./smya.db",
         description="SQLAlchemy URL. Use postgresql+psycopg2://user:pass@host/db for Postgres.",
     )
-    # Model provider boundary — only 'fake' is wired in S1.
+    # Model provider boundary — only 'fake' is wired through S3.
     model_provider: str = Field(default="fake")
     model_id: str = Field(default="fake-diagnostic-v1")
     # CORS

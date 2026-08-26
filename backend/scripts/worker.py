@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the bounded S1 diagnostic worker against durable queued jobs."""
+"""Run one bounded diagnostic or parent-report worker against queued jobs."""
 
 from __future__ import annotations
 
@@ -19,12 +19,13 @@ from backend.app.db.session import SessionLocal
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--worker-id", default="worker-diagnostic-1")
+    parser.add_argument("--job-type", choices=("diagnostic", "parent_report"), default="diagnostic")
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--poll-seconds", type=float, default=1.0)
     args = parser.parse_args()
     while True:
         with SessionLocal() as db:
-            result = run_next_job(db, args.worker_id)
+            result = run_next_job(db, args.worker_id, job_type=args.job_type)
         if result:
             print(result)
         if args.once:

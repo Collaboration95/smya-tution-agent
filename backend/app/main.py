@@ -6,7 +6,7 @@ from backend.app.api.routes.health import router as health_router
 
 settings = get_settings()
 
-app = FastAPI(title=settings.app_name, version=settings.app_version, description="SMYA Co-Tutor API — Epic S2 practice workflow")
+app = FastAPI(title=settings.app_name, version=settings.app_version, description="SMYA Co-Tutor API — bounded S1/S2/S3 workflows")
 
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origin_list, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
@@ -17,6 +17,7 @@ from backend.app.api.routes.diagnostic import router as diagnostic_router  # noq
 from backend.app.api.routes.tutor import router as tutor_router  # noqa: E402
 from backend.app.api.routes.assessment import router as assessment_router  # noqa: E402
 from backend.app.api.routes.practice import router as practice_router  # noqa: E402
+from backend.app.api.routes.parent_report import router as parent_report_router  # noqa: E402
 
 app.include_router(students_router)
 app.include_router(jobs_router)
@@ -24,3 +25,4 @@ app.include_router(diagnostic_router)
 app.include_router(tutor_router)
 app.include_router(assessment_router)
 app.include_router(practice_router)
+app.include_router(parent_report_router)

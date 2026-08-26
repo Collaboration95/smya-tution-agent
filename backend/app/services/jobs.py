@@ -60,7 +60,58 @@ def _idempotency_payload(
             "student_id": student_id,
             "subskill_id": input_payload["subskill_id"],
         }
+    if job_type == "parent_report":
+        return {
+            "centre_id": centre_id,
+            "student_id": student_id,
+            "input": {key: value for key, value in input_payload.items() if key != "trigger"},
+        }
     return {"centre_id": centre_id, "input": input_payload}
+
+
+def _parse_report_timestamp(value: object, field_name: str) -> datetime:
+    if not isinstance(value, str):
+        raise ValueError(f"parent_report {field_name} must be an ISO timestamp")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError(f"parent_report {field_name} must be an ISO timestamp") from exc
+    if parsed.tzinfo is None:
+        raise ValueError(f"parent_report {field_name} must be timezone-aware")
+    return parsed
+
+
+def _validate_parent_report_input(
+    centre_id: str | None,
+    student_id: str | None,
+    input_payload: dict,
+) -> None:
+    if not centre_id or not student_id:
+        raise ValueError("parent_report jobs require centre_id and student_id")
+    if input_payload.get("student_id") != student_id:
+        raise ValueError("parent_report jobs require matching student_id values")
+    scope = input_payload.get("verified_scope")
+    if scope != {"centre_id": centre_id, "student_id": student_id}:
+        raise ValueError("parent_report jobs require an exact verified_scope")
+    subskill_ids = input_payload.get("subskill_ids")
+    if not isinstance(subskill_ids, list) or not 1 <= len(subskill_ids) <= 5:
+        raise ValueError("parent_report jobs require one to five subskill_ids")
+    if any(not isinstance(item, str) or not item for item in subskill_ids) or len(set(subskill_ids)) != len(subskill_ids):
+        raise ValueError("parent_report subskill_ids must be unique non-empty strings")
+    previous = input_payload.get("previous_period")
+    current = input_payload.get("current_period")
+    if not isinstance(previous, dict) or not isinstance(current, dict):
+        raise ValueError("parent_report jobs require previous_period and current_period")
+    previous_start = _parse_report_timestamp(previous.get("start"), "previous_period.start")
+    previous_end = _parse_report_timestamp(previous.get("end"), "previous_period.end")
+    current_start = _parse_report_timestamp(current.get("start"), "current_period.start")
+    current_end = _parse_report_timestamp(current.get("end"), "current_period.end")
+    if previous_start >= previous_end or current_start >= current_end:
+        raise ValueError("parent_report period start must be before end")
+    if previous_end > current_start:
+        raise ValueError("parent_report comparison periods must not overlap")
+    if input_payload.get("history_policy_id") != "mastery_policy_v1" or input_payload.get("history_policy_version") != "1.0.0":
+        raise ValueError("parent_report jobs require the approved mastery policy reference")
 
 
 def create_job(
@@ -79,6 +130,8 @@ def create_job(
         approval_status = input_payload.get("approval_status", input_payload.get("status"))
         if approval_status != "approved":
             raise ValueError("assessment assignment requires explicit approved status")
+    if job_type == "parent_report":
+        _validate_parent_report_input(centre_id, student_id, input_payload)
     payload_student_id = input_payload.get("student_id")
     if student_id and payload_student_id and payload_student_id != student_id:
         raise ValueError("job student_id does not match input_payload.student_id")
